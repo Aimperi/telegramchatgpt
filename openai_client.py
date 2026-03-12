@@ -84,32 +84,67 @@ class OpenAIClient:
         Parse recipe text into structured format.
         
         Args:
-            recipe_text: Raw text from ChatGPT
+            recipe_text: Raw text from ChatGPT (expected to be JSON)
             
         Returns:
             dict: Dictionary with recipe1 and recipe2
         """
-        # Simple parsing - split by recipe markers
-        # This is a basic implementation; in production, you might want more robust parsing
-        
-        recipes = {
-            "recipe1": Recipe(
-                title="Рецепт из ваших продуктов",
-                ingredients=["Продукты из вашего списка"],
-                steps=["Следуйте инструкциям из ответа ChatGPT"],
-                cooking_time="30 минут",
-                recipe_type="only_listed"
-            ),
-            "recipe2": Recipe(
-                title="Рецепт с дополнительными ингредиентами",
-                ingredients=["Продукты из вашего списка", "Дополнительные ингредиенты"],
-                steps=["Следуйте инструкциям из ответа ChatGPT"],
-                cooking_time="35 минут",
-                recipe_type="with_additional"
-            )
-        }
-        
-        # Store raw text for now - we'll improve parsing later
-        logger.info(f"Generated recipes: {recipe_text[:200]}...")
-        
-        return recipes
+        try:
+            # Try to parse as JSON
+            # Remove markdown code blocks if present
+            cleaned_text = recipe_text.strip()
+            if cleaned_text.startswith("```json"):
+                cleaned_text = cleaned_text[7:]
+            if cleaned_text.startswith("```"):
+                cleaned_text = cleaned_text[3:]
+            if cleaned_text.endswith("```"):
+                cleaned_text = cleaned_text[:-3]
+            cleaned_text = cleaned_text.strip()
+            
+            # Parse JSON
+            data = json.loads(cleaned_text)
+            
+            # Create Recipe objects
+            recipes = {
+                "recipe1": Recipe(
+                    title=data["recipe1"]["title"],
+                    ingredients=data["recipe1"]["ingredients"],
+                    steps=data["recipe1"]["steps"],
+                    cooking_time=data["recipe1"]["cooking_time"],
+                    recipe_type="only_listed"
+                ),
+                "recipe2": Recipe(
+                    title=data["recipe2"]["title"],
+                    ingredients=data["recipe2"]["ingredients"],
+                    steps=data["recipe2"]["steps"],
+                    cooking_time=data["recipe2"]["cooking_time"],
+                    recipe_type="with_additional"
+                )
+            }
+            
+            logger.info(f"Successfully parsed recipes: {recipes['recipe1'].title}, {recipes['recipe2'].title}")
+            return recipes
+            
+        except (json.JSONDecodeError, KeyError) as e:
+            logger.error(f"Failed to parse recipe JSON: {e}")
+            logger.error(f"Raw response: {recipe_text[:500]}")
+            
+            # Fallback: return the raw text in a simple format
+            recipes = {
+                "recipe1": Recipe(
+                    title="Рецепт из ваших продуктов",
+                    ingredients=["См. описание ниже"],
+                    steps=[recipe_text[:1000]],  # First 1000 chars
+                    cooking_time="30-40 минут",
+                    recipe_type="only_listed"
+                ),
+                "recipe2": Recipe(
+                    title="Рецепт с дополнительными ингредиентами",
+                    ingredients=["См. описание выше"],
+                    steps=["Используйте второй рецепт из ответа"],
+                    cooking_time="35-45 минут",
+                    recipe_type="with_additional"
+                )
+            }
+            
+            return recipes
