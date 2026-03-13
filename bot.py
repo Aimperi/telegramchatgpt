@@ -46,6 +46,61 @@ async def start_handler(message: Message):
     logger.info(f"User {message.from_user.id} started the bot")
 
 
+async def history_handler(message: Message):
+    """
+    Handle /history command - show user's recent recipes.
+    
+    Args:
+        message: Incoming message from user
+    """
+    user_id = message.from_user.id
+    
+    # Check if database is available
+    if not db:
+        await message.answer(
+            "📊 История рецептов недоступна.\n\n"
+            "Для использования этой функции необходимо подключение к базе данных."
+        )
+        logger.info(f"User {user_id} tried to access history without database")
+        return
+    
+    try:
+        # Get user's recent recipes
+        recipes = await db.get_user_recipes(user_id, limit=5)
+        
+        if not recipes:
+            await message.answer(
+                "📭 У вас пока нет сохраненных рецептов.\n\n"
+                "Отправьте список продуктов, чтобы получить рецепты!"
+            )
+            logger.info(f"User {user_id} has no recipes in history")
+            return
+        
+        # Format history message
+        history_text = "📚 *Ваши последние рецепты:*\n\n"
+        
+        for recipe in recipes:
+            created_at = recipe['created_at'].strftime("%d.%m.%Y %H:%M")
+            recipe_num = recipe['recipe_number']
+            title = recipe['recipe_title']
+            products = recipe['product_list'][:50]  # First 50 chars
+            
+            history_text += f"🍳 *{title}*\n"
+            history_text += f"📅 {created_at}\n"
+            history_text += f"🛒 Продукты: {products}{'...' if len(recipe['product_list']) > 50 else ''}\n"
+            history_text += f"⏱ Время: {recipe['cooking_time']}\n\n"
+        
+        history_text += "💡 _Отправьте новый список продуктов для генерации рецептов_"
+        
+        await message.answer(history_text, parse_mode="Markdown")
+        logger.info(f"Sent history to user {user_id}: {len(recipes)} recipes")
+        
+    except Exception as e:
+        await message.answer(ERROR_MESSAGES["service_unavailable"])
+        logger.error(f"Error fetching history for user {user_id}: {e}", exc_info=True)
+    logger.info(f"User {message.from_user.id} started the bot")
+
+
 async def message_handler(message: Message):
     """
     Handle text messages with product lists.
@@ -145,6 +200,7 @@ async def main():
         
         # Register handlers
         dp.message.register(start_handler, Command("start"))
+        dp.message.register(history_handler, Command("history"))
         dp.message.register(message_handler)
         
         logger.info("Bot started successfully")
