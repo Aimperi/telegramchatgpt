@@ -11,6 +11,7 @@ class BotConfig:
     """Bot configuration loaded from environment variables."""
     bot_token: str
     openai_api_key: str
+    database_url: str | None = None
     webhook_url: str | None = None
     port: int = 8000
     
@@ -43,6 +44,7 @@ class BotConfig:
         return cls(
             bot_token=bot_token,
             openai_api_key=openai_api_key,
+            database_url=os.getenv("DATABASE_URL"),
             webhook_url=os.getenv("WEBHOOK_URL"),
             port=int(os.getenv("PORT", "8000"))
         )
