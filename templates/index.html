@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RecipeBotFather — найди рецепт из продуктов в холодильнике</title>
+    <meta name="description" content="Telegram бот, который находит рецепты из продуктов, которые уже есть у вас дома.">
+    <meta name="keywords" content="рецепты, рецепты из продуктов, бот рецептов, telegram рецепты, ai рецепты">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a14;
+            --bg2: #12121f;
+            --bg3: #1a1a2e;
+            --border: #2a2a4a;
+            --accent: #6366f1;
+            --accent2: #818cf8;
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+            --green: #22c55e;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+        a { text-decoration: none; color: inherit; }
+        img { max-width: 100%; }
+
+        /* NAV */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            background: rgba(10,10,20,0.85); backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 32px; display: flex; align-items: center; justify-content: space-between;
+        }
+        .nav-logo { font-size: 18px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
+        .nav-logo span { font-size: 22px; }
+        .btn-tg {
+            background: var(--accent); color: #fff; padding: 10px 20px;
+            border-radius: 8px; font-size: 14px; font-weight: 600;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-tg:hover { background: #4f46e5; transform: translateY(-1px); }
+
+        /* HERO */
+        .hero {
+            min-height: 100vh; display: flex; align-items: center;
+            padding: 120px 32px 80px; max-width: 1200px; margin: 0 auto;
+            gap: 60px;
+        }
+        .hero-text { flex: 1; }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);
+            color: var(--accent2); padding: 6px 14px; border-radius: 20px;
+            font-size: 13px; font-weight: 500; margin-bottom: 24px;
+        }
+        .hero h1 {
+            font-size: clamp(32px, 5vw, 56px); font-weight: 800;
+            line-height: 1.15; margin-bottom: 20px;
+            background: linear-gradient(135deg, #fff 0%, var(--accent2) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .hero p { font-size: 18px; color: var(--muted); margin-bottom: 36px; max-width: 480px; }
+        .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+        .btn-primary {
+            background: var(--accent); color: #fff; padding: 14px 28px;
+            border-radius: 10px; font-size: 16px; font-weight: 600;
+            display: flex; align-items: center; gap: 8px;
+            transition: background 0.2s, transform 0.15s;
+        }
+        .btn-primary:hover { background: #4f46e5; transform: translateY(-2px); }
+        .btn-secondary {
+            background: transparent; color: var(--text); padding: 14px 28px;
+            border-radius: 10px; font-size: 16px; font-weight: 600;
+            border: 1px solid var(--border); transition: border-color 0.2s, transform 0.15s;
+        }
+        .btn-secondary:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+        /* CHAT MOCKUP */
+        .hero-visual { flex: 1; display: flex; justify-content: center; }
+        .chat-mockup {
+            background: var(--bg3); border: 1px solid var(--border);
+            border-radius: 20px; padding: 20px; width: 100%; max-width: 360px;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+        }
+        .chat-header {
+            display: flex; align-items: center; gap: 10px;
+            padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 16px;
+        }
+        .chat-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .chat-name { font-weight: 600; font-size: 15px; }
+        .chat-status { font-size: 12px; color: var(--green); }
+        .msg { margin-bottom: 12px; }
+        .msg-user { display: flex; justify-content: flex-end; }
+        .msg-user .bubble { background: var(--accent); color: #fff; padding: 10px 14px; border-radius: 14px 14px 4px 14px; font-size: 14px; max-width: 80%; }
+        .msg-bot .bubble { background: var(--bg2); border: 1px solid var(--border); padding: 10px 14px; border-radius: 14px 14px 14px 4px; font-size: 14px; max-width: 90%; }
+        .msg-bot .bubble strong { color: var(--accent2); }
+        .typing { display: flex; gap: 4px; padding: 10px 14px; background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; width: fit-content; }
+        .typing span { width: 6px; height: 6px; background: var(--muted); border-radius: 50%; animation: bounce 1.2s infinite; }
+        .typing span:nth-child(2) { animation-delay: 0.2s; }
+        .typing span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+        /* SECTIONS */
+        section { padding: 80px 32px; max-width: 1200px; margin: 0 auto; }
+        .section-title { font-size: clamp(24px, 3vw, 36px); font-weight: 700; text-align: center; margin-bottom: 12px; }
+        .section-sub { text-align: center; color: var(--muted); font-size: 16px; margin-bottom: 48px; }
+
+        /* FEATURES */
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+        .feature-card {
+            background: var(--bg3); border: 1px solid var(--border);
+            border-radius: 16px; padding: 28px 24px;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        .feature-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+        .feature-icon { font-size: 36px; margin-bottom: 16px; }
+        .feature-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+        .feature-card p { font-size: 14px; color: var(--muted); }
+
+        /* STEPS */
+        .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+        .step { display: flex; gap: 20px; align-items: flex-start; }
+        .step-num {
+            width: 44px; height: 44px; border-radius: 50%; background: var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 18px; flex-shrink: 0;
+        }
+        .step h3 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+        .step p { font-size: 14px; color: var(--muted); }
+        .step-example { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--accent2); margin-top: 8px; font-family: monospace; }
+
+        /* RECIPES */
+        .recipes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+        .recipe-card {
+            background: var(--bg3); border: 1px solid var(--border);
+            border-radius: 16px; overflow: hidden;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .recipe-card:hover { transform: translateY(-4px); border-color: var(--accent); }
+        .recipe-img { width: 100%; height: 200px; object-fit: cover; }
+        .recipe-body { padding: 20px; }
+        .recipe-body h3 { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+        .recipe-ingredients { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+        .ingredient-tag {
+            background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.25);
+            color: var(--accent2); padding: 3px 10px; border-radius: 20px; font-size: 12px;
+        }
+        .recipe-time { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+
+        /* TECH */
+        .tech-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+        .tech-card {
+            background: var(--bg3); border: 1px solid var(--border);
+            border-radius: 16px; padding: 24px; text-align: center;
+            transition: border-color 0.2s;
+        }
+        .tech-card:hover { border-color: var(--accent); }
+        .tech-icon { font-size: 40px; margin-bottom: 12px; }
+        .tech-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+        .tech-card p { font-size: 13px; color: var(--muted); }
+
+        /* BENEFITS */
+        .benefits-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; max-width: 800px; margin: 0 auto; }
+        .benefit-item {
+            display: flex; align-items: center; gap: 12px;
+            background: var(--bg3); border: 1px solid var(--border);
+            border-radius: 12px; padding: 16px 20px;
+        }
+        .benefit-item span { font-size: 20px; }
+        .benefit-item p { font-size: 15px; }
+
+        /* CTA */
+        .cta-section {
+            background: linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(129,140,248,0.05) 100%);
+            border: 1px solid rgba(99,102,241,0.2); border-radius: 24px;
+            padding: 80px 40px; text-align: center; margin: 0 32px 80px;
+        }
+        .cta-section h2 { font-size: clamp(28px, 4vw, 44px); font-weight: 800; margin-bottom: 16px; }
+        .cta-section p { font-size: 18px; color: var(--muted); margin-bottom: 36px; }
+
+        /* FOOTER */
+        footer {
+            background: var(--bg2); border-top: 1px solid var(--border);
+            padding: 40px 32px; text-align: center;
+        }
+        .footer-logo { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+        .footer-desc { font-size: 14px; color: var(--muted); margin-bottom: 20px; }
+        .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 24px; }
+        .footer-links a { font-size: 14px; color: var(--muted); transition: color 0.2s; }
+        .footer-links a:hover { color: var(--accent2); }
+        .footer-copy { font-size: 13px; color: #4b5563; }
+
+        /* DIVIDER */
+        .full-section { max-width: 100%; padding: 0; }
+
+        /* FADE IN */
+        .fade-in { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+        .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 768px) {
+            .hero { flex-direction: column; padding: 100px 20px 60px; }
+            .hero-visual { width: 100%; }
+            nav { padding: 14px 20px; }
+            section { padding: 60px 20px; }
+            .cta-section { margin: 0 20px 60px; padding: 60px 24px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+    <div class="nav-logo"><span>🍳</span> RecipeBotFather</div>
+    <a href="https://t.me/receptchatgpt_bot" class="btn-tg" target="_blank">Открыть бота</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+    <div class="hero-text fade-in">
+        <div class="hero-badge">✨ AI-powered рецепты</div>
+        <h1>Найди рецепт из продуктов, которые уже есть у тебя дома</h1>
+        <p>Просто отправь список продуктов в Telegram-бот и получи готовый рецепт за несколько секунд.</p>
+        <div class="hero-btns">
+            <a href="https://t.me/receptchatgpt_bot" class="btn-primary" target="_blank">
+                <span>✈️</span> Открыть бота в Telegram
+            </a>
+            <a href="#how" class="btn-secondary">Как это работает</a>
+        </div>
+    </div>
+    <div class="hero-visual fade-in">
+        <div class="chat-mockup">
+            <div class="chat-header">
+                <div class="chat-avatar">🍳</div>
+                <div>
+                    <div class="chat-name">RecipeBotFather</div>
+                    <div class="chat-status">● онлайн</div>
+                </div>
+            </div>
+            <div class="msg msg-user"><div class="bubble">курица, рис, морковь, лук</div></div>
+            <div class="msg msg-bot"><div class="bubble">🔍 Ищу рецепты для вас...</div></div>
+            <div class="msg msg-bot">
+                <div class="bubble">
+                    <strong>🍽 Рецепт 1: Курица с рисом</strong><br>
+                    ⏱ 30 минут<br><br>
+                    1. Обжарьте курицу до золотистой корочки<br>
+                    2. Добавьте морковь и лук<br>
+                    3. Засыпьте рис, залейте водой<br>
+                    4. Тушите 20 минут под крышкой
+                </div>
+            </div>
+            <div class="typing"><span></span><span></span><span></span></div>
+        </div>
+    </div>
+</div>
+
+<!-- FEATURES -->
+<section id="features">
+    <div class="section-title fade-in">Что умеет RecipeBotFather</div>
+    <div class="section-sub fade-in">Всё что нужно для быстрого приготовления</div>
+    <div class="features-grid">
+        <div class="feature-card fade-in">
+            <div class="feature-icon">🥕</div>
+            <h3>Рецепты из ваших продуктов</h3>
+            <p>Находит рецепты именно из тех продуктов, которые есть у вас дома прямо сейчас.</p>
+        </div>
+        <div class="feature-card fade-in">
+            <div class="feature-icon">🤖</div>
+            <h3>Искусственный интеллект</h3>
+            <p>Использует OpenAI для генерации уникальных и вкусных рецептов под ваши продукты.</p>
+        </div>
+        <div class="feature-card fade-in">
+            <div class="feature-icon">⚡</div>
+            <h3>Мгновенный результат</h3>
+            <p>Рецепт генерируется за несколько секунд — никакого ожидания.</p>
+        </div>
+        <div class="feature-card fade-in">
+            <div class="feature-icon">✈️</div>
+            <h3>Прямо в Telegram</h3>
+            <p>Работает в привычном мессенджере — ничего устанавливать не нужно.</p>
+        </div>
+    </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how" style="background: var(--bg2); max-width:100%; padding: 80px 32px;">
+<div style="max-width:1200px; margin:0 auto;">
+    <div class="section-title fade-in">Как это работает</div>
+    <div class="section-sub fade-in">Три простых шага до готового рецепта</div>
+    <div class="steps">
+        <div class="step fade-in">
+            <div class="step-num">1</div>
+            <div>
+                <h3>Напишите список продуктов</h3>
+                <p>Просто перечислите что есть в холодильнике через запятую.</p>
+                <div class="step-example">курица, рис, морковь, лук</div>
+            </div>
+        </div>
+        <div class="step fade-in">
+            <div class="step-num">2</div>
+            <div>
+                <h3>Бот анализирует продукты</h3>
+                <p>AI на базе OpenAI подбирает оптимальные рецепты под ваш набор продуктов.</p>
+            </div>
+        </div>
+        <div class="step fade-in">
+            <div class="step-num">3</div>
+            <div>
+                <h3>Получите готовые рецепты</h3>
+                <p>Бот предложит два варианта:</p>
+                <div class="step-example">Рецепт №1 — только из ваших продуктов<br>Рецепт №2 — с доп. ингредиентами</div>
+            </div>
+        </div>
+    </div>
+</div>
+</section>
+
+<!-- RECIPES -->
+<section id="recipes">
+    <div class="section-title fade-in">Примеры рецептов</div>
+    <div class="section-sub fade-in">Что умеет готовить бот</div>
+    <div class="recipes-grid">
+        <div class="recipe-card fade-in">
+            <img src="https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?w=600&q=80" alt="Курица с рисом" class="recipe-img" loading="lazy">
+            <div class="recipe-body">
+                <h3>🍗 Курица с рисом</h3>
+                <div class="recipe-ingredients">
+                    <span class="ingredient-tag">курица</span>
+                    <span class="ingredient-tag">рис</span>
+                    <span class="ingredient-tag">морковь</span>
+                    <span class="ingredient-tag">лук</span>
+                </div>
+                <div class="recipe-time">⏱ 30 минут</div>
+            </div>
+        </div>
+        <div class="recipe-card fade-in">
+            <img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&q=80" alt="Овощное рагу" class="recipe-img" loading="lazy">
+            <div class="recipe-body">
+                <h3>🥘 Овощное рагу</h3>
+                <div class="recipe-ingredients">
+                    <span class="ingredient-tag">картофель</span>
+                    <span class="ingredient-tag">морковь</span>
+                    <span class="ingredient-tag">лук</span>
+                    <span class="ingredient-tag">помидоры</span>
+                </div>
+                <div class="recipe-time">⏱ 40 минут</div>
+            </div>
+        </div>
+        <div class="recipe-card fade-in">
+            <img src="https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&q=80" alt="Омлет с овощами" class="recipe-img" loading="lazy">
+            <div class="recipe-body">
+                <h3>🍳 Омлет с овощами</h3>
+                <div class="recipe-ingredients">
+                    <span class="ingredient-tag">яйца</span>
+                    <span class="ingredient-tag">перец</span>
+                    <span class="ingredient-tag">помидоры</span>
+                    <span class="ingredient-tag">сыр</span>
+                </div>
+                <div class="recipe-time">⏱ 15 минут</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- TECH -->
+<section style="background: var(--bg2); max-width:100%; padding: 80px 32px;">
+<div style="max-width:1200px; margin:0 auto;">
+    <div class="section-title fade-in">Как работает бот</div>
+    <div class="section-sub fade-in">Технологии под капотом</div>
+    <div class="tech-grid">
+        <div class="tech-card fade-in">
+            <div class="tech-icon">✈️</div>
+            <h3>Telegram API</h3>
+            <p>Бот принимает сообщения от пользователя прямо в Telegram.</p>
+        </div>
+        <div class="tech-card fade-in">
+            <div class="tech-icon">🧠</div>
+            <h3>OpenAI API</h3>
+            <p>Искусственный интеллект генерирует уникальные рецепты.</p>
+        </div>
+        <div class="tech-card fade-in">
+            <div class="tech-icon">🐍</div>
+            <h3>Python Bot</h3>
+            <p>Обрабатывает запросы пользователей на базе aiogram.</p>
+        </div>
+        <div class="tech-card fade-in">
+            <div class="tech-icon">🚂</div>
+            <h3>Railway Cloud</h3>
+            <p>Хостинг и запуск бота 24/7 в облаке.</p>
+        </div>
+    </div>
+</div>
+</section>
+
+<!-- BENEFITS -->
+<section>
+    <div class="section-title fade-in">Почему пользователям нравится бот</div>
+    <div class="section-sub fade-in"></div>
+    <div class="benefits-list">
+        <div class="benefit-item fade-in"><span>🔍</span><p>Не нужно искать рецепты вручную</p></div>
+        <div class="benefit-item fade-in"><span>🥗</span><p>Использует продукты, которые уже есть дома</p></div>
+        <div class="benefit-item fade-in"><span>⏱</span><p>Экономит время на планировании еды</p></div>
+        <div class="benefit-item fade-in"><span>💡</span><p>Прост в использовании — просто напишите список</p></div>
+        <div class="benefit-item fade-in"><span>✈️</span><p>Работает прямо в Telegram</p></div>
+    </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-section fade-in">
+    <h2>Попробуйте RecipeBotFather прямо сейчас</h2>
+    <p>Напишите список продуктов и получите рецепт за несколько секунд.</p>
+    <a href="https://t.me/receptchatgpt_bot" class="btn-primary" target="_blank" style="display:inline-flex; font-size:18px; padding:16px 36px;">
+        ✈️ Открыть бота в Telegram
+    </a>
+</div>
+
+<!-- FOOTER -->
+<footer>
+    <div class="footer-logo">🍳 RecipeBotFather</div>
+    <div class="footer-desc">AI-бот для генерации рецептов из ваших продуктов.</div>
+    <div class="footer-links">
+        <a href="https://t.me/receptchatgpt_bot" target="_blank">Telegram Bot</a>
+        <a href="https://github.com/Aimperi/telegramchatgpt" target="_blank">GitHub</a>
+    </div>
+    <div class="footer-copy">© 2026 RecipeBotFather. Все права защищены.</div>
+</footer>
+
+<script>
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

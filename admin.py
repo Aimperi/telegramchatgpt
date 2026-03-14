@@ -25,7 +25,7 @@ def is_authenticated(request: Request) -> bool:
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    return HTMLResponse(content="<html><body></body></html>", status_code=200)
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.get("/admin/", response_class=HTMLResponse)
