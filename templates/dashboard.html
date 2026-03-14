@@ -24,11 +24,16 @@
             text-decoration: none; transition: all 0.2s;
         }
         .btn-logout:hover { border-color: #6366f1; color: #fff; }
-        .content {
-            display: flex; align-items: center; justify-content: center;
-            min-height: calc(100vh - 65px);
+        .content { padding: 40px 32px; }
+        .page-title { font-size: 22px; font-weight: 600; margin-bottom: 32px; color: #e5e7eb; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+        .stat-card {
+            background: #1a1a2e; border: 1px solid #2a2a4a;
+            border-radius: 12px; padding: 28px 24px;
         }
-        h2 { color: #9ca3af; font-size: 24px; font-weight: 400; }
+        .stat-icon { font-size: 32px; margin-bottom: 12px; }
+        .stat-value { font-size: 42px; font-weight: 700; color: #6366f1; line-height: 1; }
+        .stat-label { font-size: 14px; color: #6b7280; margin-top: 8px; }
     </style>
 </head>
 <body>
@@ -40,7 +45,19 @@
         <a href="/logout/" class="btn-logout">Выйти</a>
     </nav>
     <div class="content">
-        <h2>Админ-панель</h2>
+        <div class="page-title">Админ-панель</div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">👤</div>
+                <div class="stat-value">{{ total_users }}</div>
+                <div class="stat-label">Пользователей</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🍳</div>
+                <div class="stat-value">{{ total_recipes }}</div>
+                <div class="stat-label">Сгенерировано рецептов</div>
+            </div>
+        </div>
     </div>
 </body>
 </html>

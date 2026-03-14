@@ -54,7 +54,18 @@ async def login(request: Request, username: str = Form(...), password: str = For
 async def dashboard(request: Request):
     if not is_authenticated(request):
         return RedirectResponse(url="/admin/", status_code=302)
-    return templates.TemplateResponse("dashboard.html", {"request": request})
+    
+    total_users = 0
+    total_recipes = 0
+    if db:
+        total_users = await db.get_total_users()
+        total_recipes = await db.get_total_recipes()
+    
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "total_users": total_users,
+        "total_recipes": total_recipes,
+    })
 
 
 @app.get("/logout/")
