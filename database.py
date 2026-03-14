@@ -83,7 +83,17 @@ class Database:
                 CREATE INDEX IF NOT EXISTS idx_recipes_created_at 
                 ON recipes(created_at DESC)
             """)
-            
+
+            # Admins table
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS admins (
+                    id SERIAL PRIMARY KEY,
+                    username VARCHAR(255) UNIQUE NOT NULL,
+                    password_hash VARCHAR(255) NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
             logger.info("Database tables created/verified")
     
     async def save_user(self, user_id: int, username: str = None, 
@@ -170,3 +180,25 @@ class Database:
         """Get total number of generated recipes."""
         async with self.pool.acquire() as conn:
             return await conn.fetchval("SELECT COUNT(*) FROM recipes")
+
+    async def get_admin(self, username: str) -> Optional[dict]:
+        """Get admin by username."""
+        async with self.pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT id, username, password_hash FROM admins WHERE username = $1",
+                username
+            )
+            return dict(row) if row else None
+
+    async def create_default_admin(self, username: str, password: str):
+        """Create default admin if no admins exist."""
+        import bcrypt
+        async with self.pool.acquire() as conn:
+            count = await conn.fetchval("SELECT COUNT(*) FROM admins")
+            if count == 0:
+                password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+                await conn.execute(
+                    "INSERT INTO admins (username, password_hash) VALUES ($1, $2)",
+                    username, password_hash
+                )
+                logger.info(f"Default admin '{username}' created")

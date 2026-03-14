@@ -1,6 +1,7 @@
 """Main bot module for Telegram Recipe Bot."""
 import asyncio
 import logging
+import uvicorn
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import Message
@@ -9,6 +10,8 @@ from config import BotConfig
 from errors import ConfigurationError, RateLimitError, AuthenticationError, OpenAIAPIError
 from openai_client import OpenAIClient
 from database import Database
+import admin as admin_module
+from admin import app as admin_app
 from prompts import WELCOME_MESSAGE, ERROR_MESSAGES
 from validation import validate_product_list
 from models import RecipeResponse
@@ -194,7 +197,9 @@ async def main():
         if config.database_url:
             db = Database(database_url=config.database_url)
             await db.connect()
+            admin_module.db = db  # Share db instance with admin panel
             logger.info("Database connected successfully")
+            await db.create_default_admin("recipeadmin", "RecipeBot#2026!")
         else:
             logger.warning("DATABASE_URL not provided, running without database")
         
@@ -205,14 +210,26 @@ async def main():
         
         logger.info("Bot started successfully")
         
-        try:
-            # Start polling
-            await dp.start_polling(bot)
-        finally:
-            # Cleanup: disconnect database on shutdown
-            if db:
-                await db.disconnect()
-                logger.info("Database disconnected")
+        # Run web server and bot concurrently
+        async def run_web():
+            config_uvicorn = uvicorn.Config(
+                admin_app, host="0.0.0.0", port=8080,
+                log_level="info", timeout_graceful_shutdown=5
+            )
+            server = uvicorn.Server(config_uvicorn)
+            logger.info("Admin panel started on port 8080")
+            await server.serve()
+
+        async def run_bot():
+            await asyncio.sleep(1)  # Let web server bind first
+            try:
+                await dp.start_polling(bot)
+            finally:
+                if db:
+                    await db.disconnect()
+                    logger.info("Database disconnected")
+
+        await asyncio.gather(run_web(), run_bot())
         
     except ConfigurationError as e:
         logger.error(f"Configuration error: {e}")
