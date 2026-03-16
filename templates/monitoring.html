@@ -121,6 +121,63 @@
         .log-warn { color: #facc15; }
         .log-err  { color: #f87171; }
     </style>
+    <script>
+        // Auto-refresh monitoring data every 10 seconds
+        let refreshInterval;
+
+        async function refreshMonitoringData() {
+            try {
+                const response = await fetch('/api/monitoring/');
+                if (!response.ok) return;
+                const data = await response.json();
+                updateUI(data);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function updateUI(data) {
+            const totalEl = document.querySelector('.checks-bar .num.total');
+            const okEl = document.querySelector('.checks-bar .num.ok');
+            const failEl = document.querySelector('.checks-bar .num.fail');
+            if (totalEl) totalEl.textContent = data.checks_total;
+            if (okEl) okEl.textContent = data.checks_success;
+            if (failEl) failEl.textContent = data.checks_failed;
+            
+            const uptimeEl = document.querySelector('.big-num');
+            if (uptimeEl) uptimeEl.textContent = data.uptime;
+
+            const cards = document.querySelectorAll('.card');
+            if (cards.length >= 3) {
+                const tgBadge = cards[2].querySelector('.badge');
+                if (tgBadge) {
+                    tgBadge.className = data.tg_ok ? 'badge green' : 'badge red';
+                    tgBadge.innerHTML = data.tg_ok ? '<span class="dot green"></span> Online' : '<span class="dot red"></span> Offline';
+                }
+            }
+
+            if (cards.length >= 4) {
+                const dbBadge = cards[3].querySelector('.badge');
+                if (dbBadge) {
+                    dbBadge.className = data.db_ok ? 'badge green' : 'badge red';
+                    dbBadge.innerHTML = data.db_ok ? '<span class="dot green"></span> Connected' : '<span class="dot red"></span> Unavailable';
+                }
+            }
+
+            const logBox = document.querySelector('.log-box');
+            if (logBox && data.logs) {
+                logBox.innerHTML = data.logs.map(entry => `<div class="log-${entry.level}">${entry.time} &nbsp;│&nbsp; ${entry.message}</div>`).join('');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshInterval = setInterval(refreshMonitoringData, 10000);
+        });
+
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) clearInterval(refreshInterval);
+        });
+    </script>
 </head>
 <body>
 <aside class="sidebar">
@@ -322,3 +379,4 @@
 </div>
 </body>
 </html>
+
