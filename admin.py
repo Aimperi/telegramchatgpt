@@ -268,6 +268,30 @@ async def tts(req: TTSRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/elevenlabs/voices")
+async def get_elevenlabs_voices():
+    """Get list of voices from ElevenLabs account."""
+    import os
+    api_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    if not api_key:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail="ELEVENLABS_API_KEY not configured")
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(
+                "https://api.elevenlabs.io/v1/voices",
+                headers={"xi-api-key": api_key}
+            )
+        data = r.json()
+        # Return simplified list: name + voice_id
+        voices = [{"name": v.get("name"), "voice_id": v.get("voice_id"), "category": v.get("category")} for v in data.get("voices", [])]
+        logger.info(f"ElevenLabs voices in account: {voices}")
+        return {"voices": voices}
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/tts/elevenlabs")
 async def tts_elevenlabs(req: TTSRequest):
     """Generate speech using ElevenLabs TTS API."""
