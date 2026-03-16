@@ -79,11 +79,26 @@ async def dashboard(request: Request):
     })
 
 
-@app.get("/monitoring/", response_class=HTMLResponse)
-async def monitoring(request: Request):
+@app.get("/api/dashboard/")
+async def dashboard_api(request: Request):
+    """API endpoint for dashboard data (JSON)."""
     if not is_authenticated(request):
-        return RedirectResponse(url="/admin/", status_code=302)
+        return {"error": "Unauthorized"}, 401
+    
+    total_users = 0
+    total_recipes = 0
+    if db:
+        total_users = await db.get_total_users()
+        total_recipes = await db.get_total_recipes()
+    
+    return {
+        "total_users": total_users,
+        "total_recipes": total_recipes,
+    }
 
+
+async def _get_monitoring_data():
+    """Helper function to collect monitoring data."""
     db_ok = db is not None
     elapsed = int(time.time() - START_TIME)
     hours, rem = divmod(elapsed, 3600)
@@ -154,30 +169,41 @@ async def monitoring(request: Request):
          "message": f"Admin panel — Running (port 8080)"},
     ]
 
-    return templates.TemplateResponse("monitoring.html", {
-        "request": request,
-        # uptime card
+    return {
         "uptime": uptime,
         "uptime_pct": uptime_pct,
         "restart_count": RESTART_COUNT,
         "started_at": datetime.fromtimestamp(START_TIME).strftime("%d.%m.%Y %H:%M"),
-        # health checks card
         "checks_total": health_stats["total"],
         "checks_success": health_stats["success"],
         "checks_failed": health_stats["failed"],
-        # telegram card
         "tg_ok": tg_ok,
         "tg_username": tg_username,
         "tg_latency": tg_latency,
-        # openai card
         "openai_ok": openai_ok,
         "openai_latency": openai_latency,
-        # db card
         "db_ok": db_ok,
         "db_stats": db_stats,
-        # logs
         "logs": logs,
-    })
+    }
+
+
+@app.get("/monitoring/", response_class=HTMLResponse)
+async def monitoring(request: Request):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/", status_code=302)
+
+    data = await _get_monitoring_data()
+    return templates.TemplateResponse("monitoring.html", {"request": request, **data})
+
+
+@app.get("/api/monitoring/")
+async def monitoring_api(request: Request):
+    """API endpoint for monitoring data (JSON)."""
+    if not is_authenticated(request):
+        return {"error": "Unauthorized"}, 401
+
+    return await _get_monitoring_data()
 
 
 @app.get("/settings/", response_class=HTMLResponse)

@@ -52,6 +52,7 @@
         .topbar {
             padding: 20px 32px; border-bottom: 1px solid #2a2a4a;
             background: #1a1a2e; font-size: 18px; font-weight: 600; color: #e5e7eb;
+            display: flex; align-items: center; justify-content: space-between;
         }
         .content { padding: 40px 32px; }
         .stats-grid {
@@ -65,7 +66,59 @@
         .stat-icon { font-size: 32px; margin-bottom: 12px; }
         .stat-value { font-size: 42px; font-weight: 700; color: #6366f1; line-height: 1; }
         .stat-label { font-size: 14px; color: #6b7280; margin-top: 8px; }
+        .refresh-hint {
+            font-size: 12px; color: #4b5563; font-weight: 400; margin-left: 12px;
+        }
+        .refresh-hint .pulse-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+        }
     </style>
+    <script>
+        // Auto-refresh dashboard data every 10 seconds
+        let refreshInterval;
+
+        async function refreshDashboardData() {
+            try {
+                const response = await fetch('/api/dashboard/');
+                if (!response.ok) {
+                    console.error('Failed to fetch dashboard data');
+                    return;
+                }
+                
+                const data = await response.json();
+                updateUI(data);
+            } catch (error) {
+                console.error('Error refreshing dashboard data:', error);
+            }
+        }
+
+        function updateUI(data) {
+            const statValues = document.querySelectorAll('.stat-value');
+            statValues[0].textContent = data.total_users;
+            statValues[1].textContent = data.total_recipes;
+        }
+
+        // Start auto-refresh when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshInterval = setInterval(refreshDashboardData, 10000); // 10 seconds
+        });
+
+        // Clean up interval when page unloads
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
 </head>
 <body>
     <aside class="sidebar">
@@ -91,7 +144,10 @@
     </aside>
 
     <div class="main">
-        <div class="topbar">Dashboard</div>
+        <div class="topbar">
+            Dashboard
+            <span class="refresh-hint">🔄 Автообновление каждые 10 секунд</span>
+        </div>
         <div class="content">
             <div class="stats-grid">
                 <div class="stat-card">
