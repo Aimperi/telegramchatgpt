@@ -79,7 +79,25 @@ class OpenAIClient:
             logger.error(f"Unexpected error in generate_recipes: {e}")
             raise OpenAIAPIError(f"Unexpected error: {e}") from e
     
-    def _parse_recipes(self, recipe_text: str) -> dict:
+    async def generate_recipe_image(self, recipe_title: str, ingredients: list) -> str:
+        """
+        Generate image for recipe using DALL-E 3.
+        
+        Returns:
+            str: URL of generated image
+        """
+        ingredients_str = ", ".join(ingredients[:5])  # First 5 ingredients
+        prompt = f"Professional food photography of {recipe_title}, made with {ingredients_str}. Beautiful plating, restaurant quality, natural lighting, top-down view."
+        
+        response = self.client.images.generate(
+            model="dall-e-3",
+            prompt=prompt,
+            size="1024x1024",
+            quality="standard",
+            n=1
+        )
+        
+        return response.data[0].url
         """
         Parse recipe text into structured format.
         

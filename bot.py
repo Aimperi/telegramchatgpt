@@ -168,6 +168,19 @@ async def message_handler(message: Message):
         await message.answer(formatted_message, parse_mode="MarkdownV2")
         logger.info(f"Successfully sent recipes to user {user_id}")
         
+        # Generate and send recipe image
+        try:
+            await message.answer("🎨 Генерирую изображение блюда...")
+            image_url = await openai_client.generate_recipe_image(
+                recipes["recipe1"].title,
+                recipes["recipe1"].ingredients
+            )
+            await message.answer_photo(photo=image_url, caption=f"🍽 {recipes['recipe1'].title}")
+            logger.info(f"Sent recipe image to user {user_id}")
+        except Exception as e:
+            logger.error(f"Failed to generate image for user {user_id}: {e}")
+            # Don't send error to user - image is optional
+        
     except (RateLimitError, AuthenticationError, OpenAIAPIError) as e:
         await message.answer(ERROR_MESSAGES["service_unavailable"])
         logger.error(f"OpenAI API error for user {user_id}: {e}")
