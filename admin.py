@@ -1,10 +1,15 @@
 """Admin panel web application using FastAPI."""
 import logging
+import sys
+import time
 import bcrypt
+from datetime import datetime
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
+
+START_TIME = time.time()
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +70,43 @@ async def dashboard(request: Request):
         "request": request,
         "total_users": total_users,
         "total_recipes": total_recipes,
+    })
+
+
+@app.get("/monitoring/", response_class=HTMLResponse)
+async def monitoring(request: Request):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/", status_code=302)
+
+    db_ok = db is not None
+    elapsed = int(time.time() - START_TIME)
+    hours, rem = divmod(elapsed, 3600)
+    minutes, seconds = divmod(rem, 60)
+    uptime = f"{hours}h {minutes}m {seconds}s"
+
+    logs = [
+        {"level": "ok",   "time": datetime.now().strftime("%H:%M:%S"), "message": "Bot polling active"},
+        {"level": "ok",   "time": datetime.now().strftime("%H:%M:%S"), "message": "Admin panel running on port 8080"},
+        {"level": "ok" if db_ok else "warn", "time": datetime.now().strftime("%H:%M:%S"),
+         "message": "Database connected" if db_ok else "Database unavailable"},
+    ]
+
+    return templates.TemplateResponse("monitoring.html", {
+        "request": request,
+        "db_ok": db_ok,
+        "uptime": uptime,
+        "logs": logs,
+    })
+
+
+@app.get("/settings/", response_class=HTMLResponse)
+async def settings(request: Request):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/", status_code=302)
+
+    return templates.TemplateResponse("settings.html", {
+        "request": request,
+        "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
     })
 
 

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings — Admin</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f1a; min-height: 100vh; color: #fff;
+            display: flex;
+        }
+        .sidebar {
+            width: 220px; min-height: 100vh; background: #1a1a2e;
+            border-right: 1px solid #2a2a4a;
+            display: flex; flex-direction: column;
+            position: fixed; top: 0; left: 0; bottom: 0;
+        }
+        .sidebar-brand {
+            padding: 24px 20px; font-size: 16px; font-weight: 700;
+            border-bottom: 1px solid #2a2a4a;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .sidebar-brand span { font-size: 22px; }
+        .sidebar-nav { flex: 1; padding: 16px 0; }
+        .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 20px; font-size: 14px; font-weight: 500;
+            color: #6b7280; text-decoration: none;
+            transition: all 0.2s; border-left: 3px solid transparent;
+        }
+        .nav-item:hover { color: #e5e7eb; background: #12122a; }
+        .nav-item.active { color: #6366f1; border-left-color: #6366f1; background: #12122a; }
+        .nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
+        .sidebar-footer { padding: 16px 20px; border-top: 1px solid #2a2a4a; }
+        .btn-logout {
+            display: flex; align-items: center; gap: 10px;
+            width: 100%; padding: 10px 12px; background: transparent;
+            border: 1px solid #2a2a4a; border-radius: 8px;
+            color: #6b7280; font-size: 14px; cursor: pointer;
+            text-decoration: none; transition: all 0.2s;
+        }
+        .btn-logout:hover { border-color: #6366f1; color: #fff; }
+        .main { margin-left: 220px; flex: 1; display: flex; flex-direction: column; }
+        .topbar {
+            padding: 20px 32px; border-bottom: 1px solid #2a2a4a;
+            background: #1a1a2e; font-size: 18px; font-weight: 600; color: #e5e7eb;
+        }
+        .content { padding: 40px 32px; }
+        .settings-card {
+            background: #1a1a2e; border: 1px solid #2a2a4a;
+            border-radius: 12px; padding: 28px; max-width: 560px; margin-bottom: 24px;
+        }
+        .settings-card h3 { font-size: 15px; font-weight: 600; color: #e5e7eb; margin-bottom: 20px; }
+        .field { margin-bottom: 18px; }
+        .field label { display: block; font-size: 13px; color: #6b7280; margin-bottom: 6px; }
+        .field .val {
+            font-size: 14px; color: #e5e7eb; background: #12122a;
+            border: 1px solid #2a2a4a; border-radius: 8px; padding: 10px 14px;
+        }
+        .field .val.masked { letter-spacing: 3px; color: #4b5563; }
+        .info-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid #2a2a4a; font-size: 14px;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-row .key { color: #6b7280; }
+        .info-row .v { color: #e5e7eb; }
+        .badge-pill {
+            padding: 3px 10px; border-radius: 20px; font-size: 12px;
+            background: #1e1b4b; color: #818cf8;
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <span>👨‍🍳</span> RecipeBot
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/dashboard/" class="nav-item">
+                <span class="icon">📊</span> Dashboard
+            </a>
+            <a href="/monitoring/" class="nav-item">
+                <span class="icon">📡</span> Monitoring
+            </a>
+            <a href="/settings/" class="nav-item active">
+                <span class="icon">⚙️</span> Settings
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="/logout/" class="btn-logout">
+                <span>🚪</span> Выйти
+            </a>
+        </div>
+    </aside>
+
+    <div class="main">
+        <div class="topbar">Settings</div>
+        <div class="content">
+            <div class="settings-card">
+                <h3>Конфигурация бота</h3>
+                <div class="field">
+                    <label>Telegram Bot</label>
+                    <div class="val">@receptchatgpt_bot</div>
+                </div>
+                <div class="field">
+                    <label>OpenAI Model</label>
+                    <div class="val">gpt-3.5-turbo</div>
+                </div>
+                <div class="field">
+                    <label>Image Model</label>
+                    <div class="val">dall-e-3</div>
+                </div>
+                <div class="field">
+                    <label>OpenAI API Key</label>
+                    <div class="val masked">••••••••••••••••••••••••</div>
+                </div>
+            </div>
+
+            <div class="settings-card">
+                <h3>Информация о системе</h3>
+                <div class="info-row">
+                    <span class="key">Хостинг</span>
+                    <span class="v">Railway</span>
+                </div>
+                <div class="info-row">
+                    <span class="key">Домен</span>
+                    <span class="v">recipebotfather.xyz</span>
+                </div>
+                <div class="info-row">
+                    <span class="key">Порт</span>
+                    <span class="v">8080</span>
+                </div>
+                <div class="info-row">
+                    <span class="key">База данных</span>
+                    <span class="v">PostgreSQL</span>
+                </div>
+                <div class="info-row">
+                    <span class="key">Версия Python</span>
+                    <span class="v">{{ python_version }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="key">Окружение</span>
+                    <span class="v"><span class="badge-pill">production</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
