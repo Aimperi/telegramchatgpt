@@ -7,9 +7,10 @@ import asyncio
 import httpx
 from datetime import datetime
 from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
+from pydantic import BaseModel
 
 START_TIME = time.time()
 RESTART_COUNT = 0  # incremented on each startup via bot.py if needed
@@ -221,3 +222,45 @@ async def settings(request: Request):
 async def logout(request: Request):
     request.session.clear()
     return RedirectResponse(url="/admin/", status_code=302)
+
+
+class TTSRequest(BaseModel):
+    text: str
+    voice: str = "alloy"
+
+
+ALLOWED_VOICES = {"alloy", "echo", "fable", "onyx", "nova", "shimmer"}
+
+
+@app.post("/tts")
+async def tts(req: TTSRequest):
+    """Generate speech from text using OpenAI TTS API."""
+    text = req.text.strip()
+    if not text:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Text is required")
+    if len(text) > 4096:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Text too long (max 4096 chars)")
+    voice = req.voice if req.voice in ALLOWED_VOICES else "alloy"
+
+    try:
+        from config import BotConfig
+        import openai
+        cfg = BotConfig.from_env()
+        client = openai.AsyncOpenAI(api_key=cfg.openai_api_key)
+        response = await client.audio.speech.create(
+            model="tts-1",
+            voice=voice,
+            input=text,
+        )
+        audio_bytes = response.content
+        return StreamingResponse(
+            iter([audio_bytes]),
+            media_type="audio/mpeg",
+            headers={"Content-Disposition": "inline; filename=speech.mp3"}
+        )
+    except Exception as e:
+        logger.error(f"TTS error: {e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))

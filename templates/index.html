@@ -161,6 +161,39 @@
         .tech-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
         .tech-card p { font-size: 13px; color: var(--muted); }
 
+        /* TTS */
+        .tts-section {
+            background: var(--bg3); border: 1px solid var(--border);
+            border-radius: 24px; padding: 48px 40px; max-width: 720px; margin: 0 auto;
+        }
+        .tts-textarea {
+            width: 100%; background: var(--bg2); border: 1px solid var(--border);
+            border-radius: 12px; padding: 16px; color: var(--text);
+            font-family: 'Inter', sans-serif; font-size: 15px; resize: vertical;
+            min-height: 120px; outline: none; transition: border-color 0.2s;
+        }
+        .tts-textarea:focus { border-color: var(--accent); }
+        .tts-textarea::placeholder { color: var(--muted); }
+        .voice-grid { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+        .voice-btn {
+            background: var(--bg2); border: 1px solid var(--border);
+            color: var(--muted); padding: 8px 18px; border-radius: 20px;
+            font-size: 14px; font-weight: 500; cursor: pointer;
+            transition: all 0.2s; font-family: 'Inter', sans-serif;
+        }
+        .voice-btn:hover { border-color: var(--accent); color: var(--text); }
+        .voice-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .tts-play-btn {
+            background: var(--accent); color: #fff; border: none;
+            padding: 12px 28px; border-radius: 10px; font-size: 15px;
+            font-weight: 600; cursor: pointer; display: flex; align-items: center;
+            gap: 8px; transition: background 0.2s, transform 0.15s;
+            font-family: 'Inter', sans-serif;
+        }
+        .tts-play-btn:hover { background: #4f46e5; transform: translateY(-1px); }
+        .tts-play-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .tts-status { font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 20px; }
+
         /* BENEFITS */
         .benefits-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; max-width: 800px; margin: 0 auto; }
         .benefit-item {
@@ -280,6 +313,27 @@
             <h3>Прямо в Telegram</h3>
             <p>Работает в привычном мессенджере — ничего устанавливать не нужно.</p>
         </div>
+    </div>
+</section>
+
+<!-- TTS -->
+<section id="tts">
+    <div class="section-title fade-in">Озвучка текста</div>
+    <div class="section-sub fade-in">Введи любой текст и выбери голос для озвучки</div>
+    <div class="tts-section fade-in">
+        <textarea class="tts-textarea" id="ttsText" placeholder="Введите текст для озвучки..."></textarea>
+        <div class="voice-grid" id="voiceGrid">
+            <button class="voice-btn active" data-voice="alloy">🎙 Alloy</button>
+            <button class="voice-btn" data-voice="echo">🔊 Echo</button>
+            <button class="voice-btn" data-voice="fable">📖 Fable</button>
+            <button class="voice-btn" data-voice="onyx">🎵 Onyx</button>
+            <button class="voice-btn" data-voice="nova">✨ Nova</button>
+            <button class="voice-btn" data-voice="shimmer">🌟 Shimmer</button>
+        </div>
+        <button class="tts-play-btn" id="ttsPlayBtn" onclick="playTTS()">
+            <span id="ttsIcon">▶</span> Озвучить
+        </button>
+        <div class="tts-status" id="ttsStatus"></div>
     </div>
 </section>
 
@@ -431,6 +485,53 @@
         entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
     }, { threshold: 0.1 });
     document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+    // Voice selection
+    let selectedVoice = 'alloy';
+    document.getElementById('voiceGrid').addEventListener('click', (e) => {
+        const btn = e.target.closest('.voice-btn');
+        if (!btn) return;
+        document.querySelectorAll('.voice-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedVoice = btn.dataset.voice;
+    });
+
+    // TTS playback
+    let currentAudio = null;
+    async function playTTS() {
+        const text = document.getElementById('ttsText').value.trim();
+        const btn = document.getElementById('ttsPlayBtn');
+        const status = document.getElementById('ttsStatus');
+        const icon = document.getElementById('ttsIcon');
+
+        if (!text) { status.textContent = 'Введите текст для озвучки.'; return; }
+
+        if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+
+        btn.disabled = true;
+        icon.textContent = '⏳';
+        status.textContent = 'Генерирую аудио...';
+
+        try {
+            const res = await fetch('/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, voice: selectedVoice })
+            });
+            if (!res.ok) throw new Error(await res.text());
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            currentAudio = new Audio(url);
+            currentAudio.play();
+            icon.textContent = '🔊';
+            status.textContent = 'Воспроизведение...';
+            currentAudio.onended = () => { icon.textContent = '▶'; status.textContent = ''; btn.disabled = false; };
+        } catch (err) {
+            status.textContent = 'Ошибка: ' + err.message;
+            icon.textContent = '▶';
+            btn.disabled = false;
+        }
+    }
 </script>
 </body>
 </html>
