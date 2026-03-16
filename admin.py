@@ -231,7 +231,7 @@ class TTSRequest(BaseModel):
 
 ALLOWED_VOICES = {"alloy", "echo", "fable", "onyx", "nova", "shimmer"}
 
-ELEVENLABS_ALLOWED_VOICES = {"s0phbFBBp708ZeIy8oGx2", "d60rsXo2p0OwikDR5bS7"}
+ELEVENLABS_ALLOWED_VOICES = {"s0phbFBBp708ZeIy8oGx", "d60rsXo2p0OwikDR5bS7"}
 
 
 @app.post("/tts")
@@ -303,7 +303,7 @@ async def tts_elevenlabs(req: TTSRequest):
     if len(text) > 5000:
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="Text too long (max 5000 chars)")
-    voice_id = req.voice if req.voice in ELEVENLABS_ALLOWED_VOICES else "s0phbFBBp708ZeIy8oGx2"
+    voice_id = req.voice if req.voice in ELEVENLABS_ALLOWED_VOICES else "s0phbFBBp708ZeIy8oGx"
 
     api_key = os.environ.get("ELEVENLABS_API_KEY", "")
     if not api_key:
