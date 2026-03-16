@@ -298,9 +298,25 @@ async def tts_elevenlabs(req: TTSRequest):
             "model_id": "eleven_multilingual_v2",
             "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
         }
+        logger.info(f"ElevenLabs TTS request: voice_id={voice_id}, text_len={len(text)}, url={url}")
+        logger.info(f"ElevenLabs API key present: {bool(api_key)}, key prefix: {api_key[:8]}...")
+
         async with httpx.AsyncClient(timeout=30) as client:
+            # First check what voices are available
+            voices_resp = await client.get(
+                "https://api.elevenlabs.io/v1/voices",
+                headers={"xi-api-key": api_key}
+            )
+            voices_data = voices_resp.json()
+            available_ids = [v.get("voice_id") for v in voices_data.get("voices", [])]
+            logger.info(f"ElevenLabs available voice IDs: {available_ids}")
+            logger.info(f"Requested voice_id '{voice_id}' in available: {voice_id in available_ids}")
+
             response = await client.post(url, json=payload, headers=headers)
+
+        logger.info(f"ElevenLabs response status: {response.status_code}")
         if response.status_code != 200:
+            logger.error(f"ElevenLabs error body: {response.text}")
             from fastapi import HTTPException
             raise HTTPException(status_code=response.status_code, detail=response.text)
         return StreamingResponse(
