@@ -12,39 +12,23 @@ logger = logging.getLogger(__name__)
 
 class OpenAIClient:
     """Client for interacting with OpenAI ChatGPT API."""
-    
+
     def __init__(self, api_key: str):
-        """
-        Initialize OpenAI client.
-        
-        Args:
-            api_key: OpenAI API key
-        """
         self.client = OpenAI(api_key=api_key)
         self.model = "gpt-3.5-turbo"
         self.temperature = 0.7
         self.max_tokens = 1500
-    
+
     async def generate_recipes(self, product_list: str) -> dict:
         """
-        Generate 2 recipes based on product list.
-        
-        Args:
-            product_list: Comma or space separated list of products
-            
+        Generate recipes based on product list.
+
         Returns:
             dict: Dictionary with recipe1 and recipe2 keys containing Recipe objects
-            
-        Raises:
-            RateLimitError: When API rate limit is exceeded
-            AuthenticationError: When API authentication fails
-            OpenAIAPIError: For other API errors
         """
         try:
-            # Construct prompt
             prompt = RECIPE_GENERATION_PROMPT.format(product_list=product_list)
-            
-            # Call OpenAI API
+
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
@@ -54,41 +38,40 @@ class OpenAIClient:
                 temperature=self.temperature,
                 max_tokens=self.max_tokens
             )
-            
-            # Extract response text
+
             recipe_text = response.choices[0].message.content
-            
-            # Parse recipes from response
-            recipes = self._parse_recipes(recipe_text)
-            
-            return recipes
-            
+            return self._parse_recipes(recipe_text)
+
         except OpenAIRateLimitError as e:
             logger.error(f"OpenAI rate limit exceeded: {e}")
             raise RateLimitError("Rate limit exceeded") from e
-            
+
         except OpenAIAuthError as e:
             logger.error(f"OpenAI authentication failed: {e}")
             raise AuthenticationError("Authentication failed") from e
-            
+
         except APIError as e:
             logger.error(f"OpenAI API error: {e}")
             raise OpenAIAPIError(f"API error: {e}") from e
-            
+
         except Exception as e:
             logger.error(f"Unexpected error in generate_recipes: {e}")
             raise OpenAIAPIError(f"Unexpected error: {e}") from e
-    
+
     async def generate_recipe_image(self, recipe_title: str, ingredients: list) -> str:
         """
         Generate image for recipe using DALL-E 3.
-        
+
         Returns:
             str: URL of generated image
         """
-        ingredients_str = ", ".join(ingredients[:5])  # First 5 ingredients
-        prompt = f"Professional food photography of {recipe_title}, made with {ingredients_str}. Beautiful plating, restaurant quality, natural lighting, top-down view."
-        
+        ingredients_str = ", ".join(ingredients[:5])
+        prompt = (
+            f"Professional food photography of {recipe_title}, "
+            f"made with {ingredients_str}. Beautiful plating, "
+            f"restaurant quality, natural lighting, top-down view."
+        )
+
         response = self.client.images.generate(
             model="dall-e-3",
             prompt=prompt,
@@ -96,20 +79,17 @@ class OpenAIClient:
             quality="standard",
             n=1
         )
-        
+
         return response.data[0].url
+
+    def _parse_recipes(self, recipe_text: str) -> dict:
         """
-        Parse recipe text into structured format.
-        
-        Args:
-            recipe_text: Raw text from ChatGPT (expected to be JSON)
-            
+        Parse recipe JSON text into structured format.
+
         Returns:
             dict: Dictionary with recipe1 and recipe2
         """
         try:
-            # Try to parse as JSON
-            # Remove markdown code blocks if present
             cleaned_text = recipe_text.strip()
             if cleaned_text.startswith("```json"):
                 cleaned_text = cleaned_text[7:]
@@ -118,11 +98,9 @@ class OpenAIClient:
             if cleaned_text.endswith("```"):
                 cleaned_text = cleaned_text[:-3]
             cleaned_text = cleaned_text.strip()
-            
-            # Parse JSON
+
             data = json.loads(cleaned_text)
-            
-            # Create Recipe objects
+
             recipes = {
                 "recipe1": Recipe(
                     title=data["recipe1"]["title"],
@@ -139,20 +117,19 @@ class OpenAIClient:
                     recipe_type="with_additional"
                 )
             }
-            
-            logger.info(f"Successfully parsed recipes: {recipes['recipe1'].title}, {recipes['recipe2'].title}")
+
+            logger.info(f"Successfully parsed recipes: {recipes['recipe1'].title}")
             return recipes
-            
+
         except (json.JSONDecodeError, KeyError) as e:
             logger.error(f"Failed to parse recipe JSON: {e}")
             logger.error(f"Raw response: {recipe_text[:500]}")
-            
-            # Fallback: return the raw text in a simple format
-            recipes = {
+
+            return {
                 "recipe1": Recipe(
                     title="Рецепт из ваших продуктов",
                     ingredients=["См. описание ниже"],
-                    steps=[recipe_text[:1000]],  # First 1000 chars
+                    steps=[recipe_text[:1000]],
                     cooking_time="30-40 минут",
                     recipe_type="only_listed"
                 ),
@@ -164,5 +141,3 @@ class OpenAIClient:
                     recipe_type="with_additional"
                 )
             }
-            
-            return recipes
