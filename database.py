@@ -202,3 +202,35 @@ class Database:
                     username, password_hash
                 )
                 logger.info(f"Default admin '{username}' created")
+
+    async def get_db_size(self) -> dict:
+        """Get database size and table stats."""
+        async with self.pool.acquire() as conn:
+            db_size = await conn.fetchval(
+                "SELECT pg_size_pretty(pg_database_size(current_database()))"
+            )
+            db_size_bytes = await conn.fetchval(
+                "SELECT pg_database_size(current_database())"
+            )
+            users_count = await conn.fetchval("SELECT COUNT(*) FROM users")
+            recipes_count = await conn.fetchval("SELECT COUNT(*) FROM recipes")
+            # Newest record
+            last_recipe = await conn.fetchval(
+                "SELECT created_at FROM recipes ORDER BY created_at DESC LIMIT 1"
+            )
+            return {
+                "size_pretty": db_size,
+                "size_bytes": db_size_bytes,
+                "users_count": users_count,
+                "recipes_count": recipes_count,
+                "last_recipe_at": last_recipe.strftime("%d.%m.%Y %H:%M") if last_recipe else "—",
+            }
+
+    async def get_recent_users(self, limit: int = 5) -> List[dict]:
+        """Get most recently active users."""
+        async with self.pool.acquire() as conn:
+            rows = await conn.fetch("""
+                SELECT user_id, username, first_name, last_active
+                FROM users ORDER BY last_active DESC LIMIT $1
+            """, limit)
+            return [dict(r) for r in rows]
