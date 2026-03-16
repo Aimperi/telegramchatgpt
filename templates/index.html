@@ -174,6 +174,15 @@
         }
         .tts-textarea:focus { border-color: var(--accent); }
         .tts-textarea::placeholder { color: var(--muted); }
+        .tts-provider-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+        .provider-tab {
+            background: var(--bg2); border: 1px solid var(--border);
+            color: var(--muted); padding: 8px 20px; border-radius: 20px;
+            font-size: 14px; font-weight: 500; cursor: pointer;
+            transition: all 0.2s; font-family: 'Inter', sans-serif;
+        }
+        .provider-tab:hover { border-color: var(--accent); color: var(--text); }
+        .provider-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
         .voice-grid { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
         .voice-btn {
             background: var(--bg2); border: 1px solid var(--border);
@@ -193,6 +202,8 @@
         .tts-play-btn:hover { background: #4f46e5; transform: translateY(-1px); }
         .tts-play-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
         .tts-status { font-size: 13px; color: var(--muted); margin-top: 10px; min-height: 20px; }
+        .voice-panel { display: none; }
+        .voice-panel.active { display: block; }
 
         /* BENEFITS */
         .benefits-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; max-width: 800px; margin: 0 auto; }
@@ -322,15 +333,36 @@
     <div class="section-sub fade-in">Введи любой текст и выбери голос для озвучки</div>
     <div class="tts-section fade-in">
         <textarea class="tts-textarea" id="ttsText" placeholder="Введите текст для озвучки..."></textarea>
-        <div class="voice-grid" id="voiceGrid">
-            <button class="voice-btn active" data-voice="alloy">🎙 Alloy</button>
-            <button class="voice-btn" data-voice="echo">🔊 Echo</button>
-            <button class="voice-btn" data-voice="fable">📖 Fable</button>
-            <button class="voice-btn" data-voice="onyx">🎵 Onyx</button>
-            <button class="voice-btn" data-voice="nova">✨ Nova</button>
-            <button class="voice-btn" data-voice="shimmer">🌟 Shimmer</button>
+
+        <!-- Provider tabs -->
+        <div class="tts-provider-tabs" style="margin-top:20px;">
+            <button class="provider-tab active" data-provider="openai" onclick="switchProvider('openai')">OpenAI TTS</button>
+            <button class="provider-tab" data-provider="elevenlabs" onclick="switchProvider('elevenlabs')">ElevenLabs</button>
         </div>
-        <button class="tts-play-btn" id="ttsPlayBtn" onclick="playTTS()">
+
+        <!-- OpenAI voices -->
+        <div class="voice-panel active" id="panel-openai">
+            <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">Выберите голос:</div>
+            <div class="voice-grid" id="voiceGrid">
+                <button class="voice-btn active" data-voice="alloy">🎙 Alloy</button>
+                <button class="voice-btn" data-voice="echo">🔊 Echo</button>
+                <button class="voice-btn" data-voice="fable">📖 Fable</button>
+                <button class="voice-btn" data-voice="onyx">🎵 Onyx</button>
+                <button class="voice-btn" data-voice="nova">✨ Nova</button>
+                <button class="voice-btn" data-voice="shimmer">🌟 Shimmer</button>
+            </div>
+        </div>
+
+        <!-- ElevenLabs voices -->
+        <div class="voice-panel" id="panel-elevenlabs">
+            <div style="font-size:13px; color:var(--muted); margin-bottom:10px;">Выберите голос:</div>
+            <div class="voice-grid" id="elVoiceGrid">
+                <button class="voice-btn active" data-voice="s0phbFBBp708ZeIy8oGx2">🎙 Голос 1</button>
+                <button class="voice-btn" data-voice="d60rsXo2p0OwikDR5bS7">🎙 Голос 2</button>
+            </div>
+        </div>
+
+        <button class="tts-play-btn" id="ttsPlayBtn" onclick="playTTS()" style="margin-top:8px;">
             <span id="ttsIcon">▶</span> Озвучить
         </button>
         <div class="tts-status" id="ttsStatus"></div>
@@ -486,14 +518,32 @@
     }, { threshold: 0.1 });
     document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
 
-    // Voice selection
+    // Provider & voice selection
+    let selectedProvider = 'openai';
     let selectedVoice = 'alloy';
+    let selectedElVoice = 's0phbFBBp708ZeIy8oGx2';
+
+    function switchProvider(provider) {
+        selectedProvider = provider;
+        document.querySelectorAll('.provider-tab').forEach(t => t.classList.toggle('active', t.dataset.provider === provider));
+        document.querySelectorAll('.voice-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('panel-' + provider).classList.add('active');
+    }
+
     document.getElementById('voiceGrid').addEventListener('click', (e) => {
         const btn = e.target.closest('.voice-btn');
         if (!btn) return;
-        document.querySelectorAll('.voice-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('#voiceGrid .voice-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         selectedVoice = btn.dataset.voice;
+    });
+
+    document.getElementById('elVoiceGrid').addEventListener('click', (e) => {
+        const btn = e.target.closest('.voice-btn');
+        if (!btn) return;
+        document.querySelectorAll('#elVoiceGrid .voice-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedElVoice = btn.dataset.voice;
     });
 
     // TTS playback
@@ -512,11 +562,14 @@
         icon.textContent = '⏳';
         status.textContent = 'Генерирую аудио...';
 
+        const endpoint = selectedProvider === 'elevenlabs' ? '/tts/elevenlabs' : '/tts';
+        const voice = selectedProvider === 'elevenlabs' ? selectedElVoice : selectedVoice;
+
         try {
-            const res = await fetch('/tts', {
+            const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text, voice: selectedVoice })
+                body: JSON.stringify({ text, voice })
             });
             if (!res.ok) throw new Error(await res.text());
             const blob = await res.blob();

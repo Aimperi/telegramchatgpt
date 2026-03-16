@@ -231,6 +231,8 @@ class TTSRequest(BaseModel):
 
 ALLOWED_VOICES = {"alloy", "echo", "fable", "onyx", "nova", "shimmer"}
 
+ELEVENLABS_ALLOWED_VOICES = {"s0phbFBBp708ZeIy8oGx2", "d60rsXo2p0OwikDR5bS7"}
+
 
 @app.post("/tts")
 async def tts(req: TTSRequest):
@@ -262,5 +264,53 @@ async def tts(req: TTSRequest):
         )
     except Exception as e:
         logger.error(f"TTS error: {e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/tts/elevenlabs")
+async def tts_elevenlabs(req: TTSRequest):
+    """Generate speech using ElevenLabs TTS API."""
+    import os
+    text = req.text.strip()
+    if not text:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Text is required")
+    if len(text) > 5000:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Text too long (max 5000 chars)")
+    voice_id = req.voice if req.voice in ELEVENLABS_ALLOWED_VOICES else "s0phbFBBp708ZeIy8oGx2"
+
+    api_key = os.environ.get("ELEVENLABS_API_KEY", "")
+    if not api_key:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail="ELEVENLABS_API_KEY not configured")
+
+    try:
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+        headers = {
+            "xi-api-key": api_key,
+            "Content-Type": "application/json",
+            "Accept": "audio/mpeg",
+        }
+        payload = {
+            "text": text,
+            "model_id": "eleven_multilingual_v2",
+            "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
+        }
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(url, json=payload, headers=headers)
+        if response.status_code != 200:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+        return StreamingResponse(
+            iter([response.content]),
+            media_type="audio/mpeg",
+            headers={"Content-Disposition": "inline; filename=speech.mp3"}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"ElevenLabs TTS error: {e}")
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=str(e))
