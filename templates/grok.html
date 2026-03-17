@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grok Image Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --bg2: #111111;
+            --bg3: #1a1a1a;
+            --border: #2a2a2a;
+            --accent: #ff6b35;
+            --accent2: #ff8c5a;
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+        /* HEADER */
+        header {
+            background: var(--bg2); border-bottom: 1px solid var(--border);
+            padding: 16px 32px; display: flex; align-items: center; gap: 12px;
+        }
+        .logo { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
+        .logo span { color: var(--accent); }
+        .logo-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+        /* MAIN LAYOUT */
+        .main { display: flex; flex: 1; gap: 0; height: calc(100vh - 73px); }
+
+        /* PANELS */
+        .panel {
+            flex: 1; padding: 28px; overflow-y: auto;
+            border-right: 1px solid var(--border);
+        }
+        .panel:last-child { border-right: none; }
+        .panel-title { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+
+        /* IMAGE UPLOAD */
+        .upload-box {
+            width: 100%; aspect-ratio: 1; border: 2px dashed var(--border);
+            border-radius: 16px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; cursor: pointer;
+            transition: border-color 0.2s, background 0.2s; position: relative;
+            overflow: hidden; background: var(--bg3); margin-bottom: 20px;
+        }
+        .upload-box:hover { border-color: var(--accent); background: rgba(255,107,53,0.05); }
+        .upload-box.has-image { border-style: solid; border-color: var(--accent); }
+        .upload-box img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; border-radius: 14px; }
+        .upload-icon { font-size: 40px; margin-bottom: 10px; }
+        .upload-text { font-size: 14px; color: var(--muted); text-align: center; }
+        .upload-box input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .upload-overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.5);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.2s; border-radius: 14px;
+            font-size: 13px; color: #fff;
+        }
+        .upload-box:hover .upload-overlay { opacity: 1; }
+
+        /* FORM ELEMENTS */
+        .field { margin-bottom: 16px; }
+        .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+        .field select, .field textarea {
+            width: 100%; background: var(--bg3); border: 1px solid var(--border);
+            border-radius: 10px; padding: 10px 14px; color: var(--text);
+            font-family: 'Inter', sans-serif; font-size: 14px; outline: none;
+            transition: border-color 0.2s;
+        }
+        .field select:focus, .field textarea:focus { border-color: var(--accent); }
+        .field textarea { resize: vertical; min-height: 100px; }
+        .field select option { background: var(--bg3); }
+
+        /* GENERATE BUTTON */
+        .btn-generate {
+            width: 100%; background: var(--accent); color: #fff; border: none;
+            padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 700;
+            cursor: pointer; transition: background 0.2s, transform 0.15s;
+            font-family: 'Inter', sans-serif; display: flex; align-items: center;
+            justify-content: center; gap: 8px; margin-top: 4px;
+        }
+        .btn-generate:hover { background: #e55a25; transform: translateY(-1px); }
+        .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* RIGHT PANEL - RESULT */
+        .result-area {
+            width: 100%; aspect-ratio: 1; background: var(--bg3);
+            border: 1px solid var(--border); border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; position: relative; margin-bottom: 16px;
+        }
+        .result-placeholder { text-align: center; color: var(--muted); }
+        .result-placeholder .icon { font-size: 48px; margin-bottom: 12px; }
+        .result-placeholder p { font-size: 14px; }
+        .result-area img { width: 100%; height: 100%; object-fit: contain; border-radius: 15px; }
+
+        /* LOADING ANIMATION */
+        .loading-anim {
+            display: none; flex-direction: column; align-items: center; gap: 16px;
+        }
+        .loading-anim.active { display: flex; }
+        .spinner {
+            width: 48px; height: 48px; border: 3px solid var(--border);
+            border-top-color: var(--accent); border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { font-size: 14px; color: var(--muted); }
+
+        /* GENERATED IMAGE ANIMATION */
+        @keyframes fadeInScale {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .result-img-animated { animation: fadeInScale 0.5s ease; }
+
+        /* STATUS */
+        .status-bar { font-size: 13px; color: var(--muted); min-height: 20px; }
+        .status-bar.error { color: #f87171; }
+        .status-bar.success { color: #4ade80; }
+
+        /* DOWNLOAD BTN */
+        .btn-download {
+            display: none; width: 100%; background: var(--bg3); color: var(--text);
+            border: 1px solid var(--border); padding: 10px; border-radius: 10px;
+            font-size: 14px; font-weight: 500; cursor: pointer; text-align: center;
+            transition: border-color 0.2s; font-family: 'Inter', sans-serif;
+            margin-top: 8px;
+        }
+        .btn-download:hover { border-color: var(--accent); }
+        .btn-download.visible { display: block; }
+
+        @media (max-width: 768px) {
+            .main { flex-direction: column; height: auto; }
+            .panel { border-right: none; border-bottom: 1px solid var(--border); }
+            header { padding: 14px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <div class="logo">GR<span>O</span>K</div>
+        <div class="logo-sub">Image Generator</div>
+    </div>
+</header>
+
+<div class="main">
+    <!-- LEFT PANEL -->
+    <div class="panel">
+        <div class="panel-title">Настройки генерации</div>
+
+        <!-- Image upload -->
+        <div class="upload-box" id="uploadBox">
+            <input type="file" id="imageInput" accept="image/*" onchange="handleImageUpload(event)">
+            <div class="upload-icon">🎲</div>
+            <div class="upload-text">Нажмите чтобы загрузить<br>референс изображение</div>
+            <div class="upload-overlay">Изменить изображение</div>
+        </div>
+
+        <!-- Resolution -->
+        <div class="field">
+            <label>Разрешение</label>
+            <select id="resolution">
+                <option value="1024x1024">1024 × 1024 (квадрат)</option>
+                <option value="1280x720">1280 × 720 (16:9)</option>
+                <option value="720x1280">720 × 1280 (9:16)</option>
+                <option value="1024x576">1024 × 576 (широкий)</option>
+                <option value="576x1024">576 × 1024 (портрет)</option>
+            </select>
+        </div>
+
+        <!-- Steps / quality -->
+        <div class="field">
+            <label>Время генерации</label>
+            <select id="steps">
+                <option value="fast">⚡ Быстро (~10 сек)</option>
+                <option value="standard" selected>⚖️ Стандарт (~30 сек)</option>
+                <option value="quality">🎨 Качество (~60 сек)</option>
+            </select>
+        </div>
+
+        <!-- Prompt -->
+        <div class="field">
+            <label>Промт</label>
+            <textarea id="prompt" placeholder="Опишите что хотите сгенерировать..."></textarea>
+        </div>
+
+        <button class="btn-generate" id="generateBtn" onclick="generate()">
+            <span id="genIcon">✨</span> Генерировать
+        </button>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="panel">
+        <div class="panel-title">Результат</div>
+
+        <div class="result-area" id="resultArea">
+            <div class="result-placeholder" id="placeholder">
+                <div class="icon">🖼</div>
+                <p>Здесь появится<br>сгенерированное изображение</p>
+            </div>
+            <div class="loading-anim" id="loadingAnim">
+                <div class="spinner"></div>
+                <div class="loading-text" id="loadingText">Генерирую изображение...</div>
+            </div>
+        </div>
+
+        <div class="status-bar" id="statusBar"></div>
+        <button class="btn-download" id="downloadBtn" onclick="downloadImage()">⬇ Скачать изображение</button>
+    </div>
+</div>
+
+<script>
+    let uploadedImageBase64 = null;
+    let generatedImageUrl = null;
+
+    function handleImageUpload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            uploadedImageBase64 = ev.target.result;
+            const box = document.getElementById('uploadBox');
+            // Remove old preview
+            const old = box.querySelector('img.preview');
+            if (old) old.remove();
+            const img = document.createElement('img');
+            img.src = uploadedImageBase64;
+            img.className = 'preview';
+            box.appendChild(img);
+            box.classList.add('has-image');
+            box.querySelector('.upload-icon').style.display = 'none';
+            box.querySelector('.upload-text').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async function generate() {
+        const prompt = document.getElementById('prompt').value.trim();
+        if (!prompt) { setStatus('Введите промт для генерации', 'error'); return; }
+
+        const btn = document.getElementById('generateBtn');
+        const icon = document.getElementById('genIcon');
+        const placeholder = document.getElementById('placeholder');
+        const loadingAnim = document.getElementById('loadingAnim');
+        const resultArea = document.getElementById('resultArea');
+
+        btn.disabled = true;
+        icon.textContent = '⏳';
+        placeholder.style.display = 'none';
+        loadingAnim.classList.add('active');
+        setStatus('Отправляю запрос...', '');
+        document.getElementById('downloadBtn').classList.remove('visible');
+
+        // Remove old result image
+        const oldImg = resultArea.querySelector('img.result-img');
+        if (oldImg) oldImg.remove();
+
+        const payload = {
+            prompt,
+            resolution: document.getElementById('resolution').value,
+            steps: document.getElementById('steps').value,
+            image_base64: uploadedImageBase64,
+        };
+
+        try {
+            const res = await fetch('/grok/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Ошибка генерации');
+
+            generatedImageUrl = data.image_url;
+            const img = document.createElement('img');
+            img.src = generatedImageUrl;
+            img.className = 'result-img result-img-animated';
+            img.alt = 'Generated image';
+            loadingAnim.classList.remove('active');
+            resultArea.appendChild(img);
+            document.getElementById('downloadBtn').classList.add('visible');
+            setStatus('Готово!', 'success');
+        } catch (err) {
+            loadingAnim.classList.remove('active');
+            placeholder.style.display = 'flex';
+            setStatus('Ошибка: ' + err.message, 'error');
+        } finally {
+            btn.disabled = false;
+            icon.textContent = '✨';
+        }
+    }
+
+    function setStatus(msg, type) {
+        const el = document.getElementById('statusBar');
+        el.textContent = msg;
+        el.className = 'status-bar' + (type ? ' ' + type : '');
+    }
+
+    function downloadImage() {
+        if (!generatedImageUrl) return;
+        const a = document.createElement('a');
+        a.href = generatedImageUrl;
+        a.download = 'grok-generated.png';
+        a.click();
+    }
+</script>
+</body>
+</html>

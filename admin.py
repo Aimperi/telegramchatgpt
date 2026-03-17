@@ -218,6 +218,83 @@ async def settings(request: Request):
     })
 
 
+@app.get("/grok/", response_class=HTMLResponse)
+async def grok_page(request: Request):
+    return templates.TemplateResponse("grok.html", {"request": request})
+
+
+class GrokGenerateRequest(BaseModel):
+    prompt: str
+    resolution: str = "1024x1024"
+    steps: str = "standard"
+    image_base64: str = None
+
+
+@app.post("/grok/generate")
+async def grok_generate(req: GrokGenerateRequest):
+    """Generate image using xAI Grok API (Aurora model)."""
+    import os, base64
+    prompt = req.prompt.strip()
+    if not prompt:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Prompt is required")
+
+    api_key = os.environ.get("XAI_API_KEY", "")
+    if not api_key:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail="XAI_API_KEY not configured")
+
+    # Map steps to quality hint in prompt
+    quality_map = {"fast": "fast", "standard": "standard", "quality": "high quality, detailed"}
+    quality_hint = quality_map.get(req.steps, "standard")
+
+    # Parse resolution
+    try:
+        width, height = [int(x) for x in req.resolution.split("x")]
+    except Exception:
+        width, height = 1024, 1024
+
+    payload = {
+        "model": "aurora",
+        "prompt": f"{prompt}, {quality_hint}",
+        "n": 1,
+        "size": f"{width}x{height}",
+        "response_format": "url",
+    }
+
+    # If reference image provided, add it
+    if req.image_base64:
+        payload["image"] = req.image_base64
+
+    logger.info(f"Grok generate: prompt={prompt[:50]}, resolution={req.resolution}, steps={req.steps}")
+
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            response = await client.post(
+                "https://api.x.ai/v1/images/generations",
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                }
+            )
+        logger.info(f"Grok API response status: {response.status_code}")
+        if response.status_code != 200:
+            logger.error(f"Grok API error: {response.text}")
+            from fastapi import HTTPException
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+
+        data = response.json()
+        image_url = data["data"][0]["url"]
+        return {"image_url": image_url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Grok generate error: {e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/logout/")
 async def logout(request: Request):
     request.session.clear()
