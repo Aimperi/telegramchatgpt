@@ -262,8 +262,12 @@ async def grok_generate(req: GrokGenerateRequest):
     }
     if req.image_base64:
         payload["image_url"] = req.image_base64
+        logger.info(f"Grok image: image_base64 present, length={len(req.image_base64)}, prefix='{req.image_base64[:80]}'")
+    else:
+        logger.warning("Grok image: NO image_base64 — generating from text only")
 
-    logger.info(f"Grok image generate: prompt={prompt[:50]}, aspect={req.aspect_ratio}, res={req.resolution}")
+    logger.info(f"Grok image generate: prompt='{prompt[:100]}', aspect={req.aspect_ratio}, res={req.resolution}")
+    logger.info(f"Grok image payload keys: {list(payload.keys())}")
 
     try:
         async with httpx.AsyncClient(timeout=120) as client:
@@ -312,8 +316,14 @@ async def grok_video_start(req: GrokVideoRequest):
     }
     if req.image_base64:
         payload["image_url"] = req.image_base64
+        img_prefix = req.image_base64[:80]
+        img_len = len(req.image_base64)
+        logger.info(f"Grok video: image_base64 present, length={img_len}, prefix='{img_prefix}'")
+    else:
+        logger.warning("Grok video: NO image_base64 provided — will generate from text only!")
 
-    logger.info(f"Grok video start: prompt={prompt[:50]}, duration={duration}s, aspect={req.aspect_ratio}")
+    logger.info(f"Grok video start: prompt='{prompt[:100]}', duration={duration}s, aspect={req.aspect_ratio}, res={req.resolution}")
+    logger.info(f"Grok video payload keys: {list(payload.keys())}")
 
     try:
         async with httpx.AsyncClient(timeout=30) as client:
