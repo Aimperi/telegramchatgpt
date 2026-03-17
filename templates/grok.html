@@ -349,6 +349,9 @@
             image_base64: uploadedImageBase64,
         };
 
+        console.log('Video payload: image_base64 present =', !!uploadedImageBase64, ', size =', uploadedImageBase64 ? uploadedImageBase64.length : 0);
+        console.log('Video payload keys:', Object.keys(payload));
+
         // Step 1: start generation
         setStatus('Запускаю генерацию видео...', '');
         const res = await fetch('/grok/video/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });

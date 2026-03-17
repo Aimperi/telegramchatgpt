@@ -25,6 +25,17 @@ SECRET_KEY = "f8k2mX9pQr4nL7vZ3wY6tA1sD5hJ0cE"
 app = FastAPI(title="Recipe Bot Admin Panel")
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
+# Increase max request body size to 20MB for image uploads
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+
+class LargeBodyMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        request._body_size_limit = 20 * 1024 * 1024  # 20MB
+        return await call_next(request)
+
+app.add_middleware(LargeBodyMiddleware)
+
 templates = Jinja2Templates(directory="templates")
 
 # Will be set from bot.py after db is initialized
@@ -324,6 +335,7 @@ async def grok_video_start(req: GrokVideoRequest):
 
     logger.info(f"Grok video start: prompt='{prompt[:100]}', duration={duration}s, aspect={req.aspect_ratio}, res={req.resolution}")
     logger.info(f"Grok video payload keys: {list(payload.keys())}")
+    logger.info(f"Grok video image_url in payload: {'image_url' in payload}, payload size approx: {len(str(payload))} chars")
 
     try:
         async with httpx.AsyncClient(timeout=30) as client:
