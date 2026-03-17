@@ -417,7 +417,7 @@ async def grok_recognize(req: GrokRecognizeRequest):
     )
 
     payload = {
-        "model": "grok-2-vision-latest",
+        "model": "grok-2-vision-1212",
         "messages": [
             {
                 "role": "user",
