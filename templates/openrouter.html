@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenRouter Tester</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0a; --bg2: #111111; --bg3: #1a1a1a;
+            --border: #2a2a2a; --accent: #7c3aed; --text: #f1f5f9; --muted: #94a3b8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        header {
+            background: var(--bg2); border-bottom: 1px solid var(--border);
+            padding: 14px 32px; display: flex; align-items: center; gap: 12px;
+        }
+        .logo { font-size: 22px; font-weight: 800; }
+        .logo span { color: var(--accent); }
+        .badge {
+            font-size: 11px; background: rgba(124,58,237,0.15);
+            border: 1px solid rgba(124,58,237,0.3); color: var(--accent);
+            padding: 3px 10px; border-radius: 20px; font-weight: 600;
+        }
+
+        .wrap { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+        .lbl { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 7px; display: block; }
+
+        /* Model picker */
+        .model-box { position: relative; margin-bottom: 20px; }
+        .model-search {
+            width: 100%; background: var(--bg3); border: 1px solid var(--border);
+            border-radius: 10px; padding: 10px 14px; color: var(--text);
+            font-family: 'Inter', sans-serif; font-size: 14px; outline: none;
+            transition: border-color 0.2s;
+        }
+        .model-search:focus { border-color: var(--accent); }
+        .model-sub { font-size: 11px; color: var(--muted); margin-top: 5px; }
+        .model-sub.free { color: #4ade80; }
+        .model-sub.paid { color: #fb923c; }
+        .model-sub.loading { color: var(--muted); }
+
+        .dd {
+            display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+            background: var(--bg3); border: 1px solid var(--border); border-radius: 10px;
+            max-height: 300px; overflow-y: auto; z-index: 200;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+        }
+        .dd.open { display: block; }
+        .dd-item {
+            padding: 9px 14px; cursor: pointer; display: flex; align-items: center;
+            justify-content: space-between; border-bottom: 1px solid var(--border); gap: 10px;
+        }
+        .dd-item:last-child { border-bottom: none; }
+        .dd-item:hover { background: rgba(124,58,237,0.1); }
+        .dd-name { font-size: 13px; font-weight: 500; color: var(--text); }
+        .dd-id { font-size: 11px; color: var(--muted); margin-top: 1px; }
+        .tag-free { font-size: 10px; background: rgba(74,222,128,0.1); color: #4ade80; border: 1px solid rgba(74,222,128,0.2); padding: 2px 7px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; }
+        .dd-empty { padding: 14px; font-size: 13px; color: var(--muted); text-align: center; }
+
+        /* Input */
+        .msg-input {
+            width: 100%; background: var(--bg3); border: 1px solid var(--border);
+            border-radius: 10px; padding: 12px 14px; color: var(--text);
+            font-family: 'Inter', sans-serif; font-size: 14px; outline: none;
+            resize: vertical; min-height: 110px; line-height: 1.6;
+            transition: border-color 0.2s; margin-bottom: 14px;
+        }
+        .msg-input:focus { border-color: var(--accent); }
+
+        /* Button */
+        .btn {
+            background: var(--accent); color: #fff; border: none;
+            padding: 11px 32px; border-radius: 10px; font-size: 15px; font-weight: 700;
+            cursor: pointer; font-family: 'Inter', sans-serif;
+            display: inline-flex; align-items: center; gap: 8px;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn:hover { background: #6d28d9; transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .spin { display: none; width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: sp 0.7s linear infinite; }
+        .spin.on { display: inline-block; }
+        @keyframes sp { to { transform: rotate(360deg); } }
+        .st { font-size: 12px; color: var(--muted); margin-left: 12px; }
+        .st.err { color: #f87171; }
+        .st.ok { color: #4ade80; }
+
+        /* Result block */
+        .result {
+            margin-top: 28px; background: var(--bg2); border: 1px solid var(--border);
+            border-radius: 14px; overflow: hidden;
+        }
+        .result-header {
+            padding: 12px 18px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .result-model { font-size: 13px; font-weight: 600; color: var(--accent); }
+        .result-meta { font-size: 11px; color: var(--muted); }
+        .result-body {
+            padding: 18px; min-height: 120px; font-size: 14px; line-height: 1.75;
+            color: var(--text); white-space: pre-wrap; word-break: break-word;
+        }
+        .result-placeholder { color: var(--muted); font-style: italic; }
+
+        .no-key {
+            background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.25);
+            border-radius: 10px; padding: 12px 16px; font-size: 13px; color: #f87171;
+            margin-bottom: 20px; display: none;
+        }
+        .no-key.show { display: block; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">Open<span>Router</span></div>
+    <div class="badge">Tester</div>
+</header>
+
+<div class="wrap">
+
+    <div class="no-key" id="noKey">
+        ⚠ OPENROUTER_API_KEY не задан. Добавьте переменную в Railway и передеплойте.
+    </div>
+
+    <!-- Model -->
+    <div class="model-box">
+        <span class="lbl">
+            Модель
+            <span id="modelCount" style="font-weight:400;text-transform:none;letter-spacing:0;margin-left:6px;"></span>
+        </span>
+        <input class="model-search" id="modelSearch" type="text"
+            placeholder="Поиск по названию или ID (напр. stepfun/step-3.5-flash:free)"
+            autocomplete="off"
+            oninput="onSearch(this.value)"
+            onfocus="ddOpen()"
+            onblur="ddClose()">
+        <div class="dd" id="dd"></div>
+        <div class="model-sub loading" id="modelSub">Загрузка моделей...</div>
+    </div>
+
+    <!-- Message -->
+    <span class="lbl">Сообщение</span>
+    <textarea class="msg-input" id="msgInput" placeholder="Введите запрос... (Ctrl+Enter для отправки)"></textarea>
+
+    <div style="display:flex;align-items:center;">
+        <button class="btn" id="sendBtn" onclick="send()">
+            <div class="spin" id="spin"></div>
+            <span id="btnTxt">Отправить</span>
+        </button>
+        <span class="st" id="st"></span>
+    </div>
+
+    <!-- Result -->
+    <div class="result" id="result">
+        <div class="result-header">
+            <span class="result-model" id="resModel">—</span>
+            <span class="result-meta" id="resMeta"></span>
+        </div>
+        <div class="result-body" id="resBody">
+            <span class="result-placeholder">Ответ появится здесь после отправки запроса</span>
+        </div>
+    </div>
+
+</div>
+
+<script>
+let ALL_MODELS = [];
+let selectedId = '';
+let closeTimer = null;
+
+// Init
+(async () => {
+    // Check API key
+    try {
+        const r = await fetch('/openrouter/check');
+        const d = await r.json();
+        if (!d.configured) document.getElementById('noKey').classList.add('show');
+    } catch {}
+
+    // Load models
+    try {
+        const r = await fetch('/openrouter/models');
+        const d = await r.json();
+        ALL_MODELS = d.models || [];
+        const cnt = ALL_MODELS.length;
+        document.getElementById('modelCount').textContent = `· ${cnt} моделей`;
+
+        // Default: first free model
+        const def = ALL_MODELS.find(m => m.free) || ALL_MODELS[0];
+        if (def) pick(def.id, def.name, def.free);
+    } catch (e) {
+        document.getElementById('modelSub').textContent = 'Ошибка загрузки моделей';
+    }
+})();
+
+function renderDd(items) {
+    const dd = document.getElementById('dd');
+    if (!items.length) {
+        dd.innerHTML = '<div class="dd-empty">Ничего не найдено</div>';
+        dd.classList.add('open');
+        return;
+    }
+    dd.innerHTML = items.slice(0, 100).map(m => `
+        <div class="dd-item" onmousedown="pick('${esc(m.id)}','${esc(m.name)}',${m.free})">
+            <div>
+                <div class="dd-name">${esc(m.name)}</div>
+                <div class="dd-id">${esc(m.id)}</div>
+            </div>
+            ${m.free ? '<span class="tag-free">free</span>' : ''}
+        </div>`).join('');
+    dd.classList.add('open');
+}
+
+function onSearch(val) {
+    selectedId = val;
+    updateSub(val, null);
+    const q = val.toLowerCase();
+    if (!q) { renderDd(ALL_MODELS); return; }
+    const filtered = ALL_MODELS.filter(m =>
+        m.id.toLowerCase().includes(q) || m.name.toLowerCase().includes(q)
+    );
+    // If typed something like provider/model not in list — add as custom
+    if (val.includes('/') && !ALL_MODELS.find(m => m.id === val)) {
+        filtered.unshift({ id: val, name: 'Пользовательская модель', free: val.includes(':free') });
+    }
+    renderDd(filtered);
+}
+
+function ddOpen() {
+    clearTimeout(closeTimer);
+    onSearch(document.getElementById('modelSearch').value);
+}
+
+function ddClose() {
+    closeTimer = setTimeout(() => document.getElementById('dd').classList.remove('open'), 200);
+}
+
+function pick(id, name, free) {
+    selectedId = id;
+    document.getElementById('modelSearch').value = id;
+    document.getElementById('dd').classList.remove('open');
+    updateSub(id, free);
+}
+
+function updateSub(id, free) {
+    const el = document.getElementById('modelSub');
+    if (free === null) {
+        const m = ALL_MODELS.find(m => m.id === id);
+        if (m) { free = m.free; }
+    }
+    if (free === true) {
+        el.textContent = '✓ Бесплатная модель';
+        el.className = 'model-sub free';
+    } else if (free === false) {
+        el.textContent = '$ Платная модель — требует баланс на openrouter.ai';
+        el.className = 'model-sub paid';
+    } else if (id && id.includes(':free')) {
+        el.textContent = '✓ Бесплатная модель';
+        el.className = 'model-sub free';
+    } else if (id && id.includes('/')) {
+        el.textContent = 'Пользовательская модель';
+        el.className = 'model-sub';
+    } else {
+        el.textContent = '';
+        el.className = 'model-sub';
+    }
+}
+
+async function send() {
+    const model = (document.getElementById('modelSearch').value || selectedId).trim();
+    const message = document.getElementById('msgInput').value.trim();
+    if (!model) { setSt('Выберите модель', 'err'); return; }
+    if (!message) { setSt('Введите сообщение', 'err'); return; }
+
+    const btn = document.getElementById('sendBtn');
+    btn.disabled = true;
+    document.getElementById('spin').classList.add('on');
+    document.getElementById('btnTxt').textContent = 'Отправляю...';
+    document.getElementById('resBody').innerHTML = '<span class="result-placeholder">Ожидаю ответ...</span>';
+    document.getElementById('resModel').textContent = model;
+    document.getElementById('resMeta').textContent = '';
+    setSt('', '');
+
+    const t0 = Date.now();
+    try {
+        const res = await fetch('/openrouter/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model, message })
+        });
+        const data = await res.json();
+        const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+        if (!res.ok) {
+            document.getElementById('resBody').innerHTML = `<span style="color:#f87171;">${esc(data.detail || JSON.stringify(data))}</span>`;
+            setSt('Ошибка', 'err');
+        } else {
+            document.getElementById('resBody').textContent = data.content;
+            document.getElementById('resModel').textContent = data.model || model;
+            document.getElementById('resMeta').textContent = `${elapsed}с · ${data.tokens ?? '—'} токенов`;
+            setSt('Готово', 'ok');
+        }
+    } catch (e) {
+        document.getElementById('resBody').innerHTML = `<span style="color:#f87171;">${esc(e.message)}</span>`;
+        setSt('Ошибка сети', 'err');
+    } finally {
+        btn.disabled = false;
+        document.getElementById('spin').classList.remove('on');
+        document.getElementById('btnTxt').textContent = 'Отправить';
+    }
+}
+
+function setSt(msg, cls) {
+    const el = document.getElementById('st');
+    el.textContent = msg;
+    el.className = 'st' + (cls ? ' ' + cls : '');
+}
+
+function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+document.getElementById('msgInput').addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Enter') send();
+});
+</script>
+</body>
+</html>

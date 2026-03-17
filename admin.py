@@ -466,6 +466,95 @@ async def grok_recognize(req: GrokRecognizeRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/openrouter", response_class=HTMLResponse)
+async def openrouter_page(request: Request):
+    return templates.TemplateResponse("openrouter.html", {"request": request})
+
+
+@app.get("/openrouter/check")
+async def openrouter_check():
+    import os
+    return {"configured": bool(os.environ.get("OPENROUTER_API_KEY", ""))}
+
+
+@app.get("/openrouter/models")
+async def openrouter_models():
+    """Fetch all models from OpenRouter public API."""
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get("https://openrouter.ai/api/v1/models")
+        data = r.json()
+        models = []
+        for m in data.get("data", []):
+            mid = m.get("id", "")
+            if not mid:
+                continue
+            pricing = m.get("pricing", {})
+            is_free = (
+                ":free" in mid or
+                (pricing.get("prompt") == "0" and pricing.get("completion") == "0")
+            )
+            models.append({
+                "id": mid,
+                "name": m.get("name", mid),
+                "free": is_free,
+            })
+        # Free first, then alphabetical
+        models.sort(key=lambda m: (not m["free"], m["id"].lower()))
+        return {"models": models}
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class OpenRouterChatRequest(BaseModel):
+    model: str
+    message: str
+
+
+@app.post("/openrouter/chat")
+async def openrouter_chat(req: OpenRouterChatRequest):
+    import os
+    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not api_key:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY не задан в Railway")
+    if not req.message.strip():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="message is required")
+
+    logger.info(f"OpenRouter chat: model={req.model}, msg_len={len(req.message)}")
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            r = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                json={"model": req.model, "messages": [{"role": "user", "content": req.message.strip()}]},
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://recipebotfather.xyz",
+                    "X-Title": "RecipeBotFather",
+                },
+            )
+        logger.info(f"OpenRouter response: {r.status_code}")
+        if r.status_code != 200:
+            logger.error(f"OpenRouter error: {r.text[:300]}")
+            from fastapi import HTTPException
+            raise HTTPException(status_code=r.status_code, detail=r.text)
+        data = r.json()
+        return {
+            "content": data["choices"][0]["message"]["content"],
+            "model": data.get("model", req.model),
+            "tokens": data.get("usage", {}).get("total_tokens"),
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"OpenRouter error: {e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/logout/")
 async def logout(request: Request):
     request.session.clear()
