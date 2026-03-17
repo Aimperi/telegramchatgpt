@@ -225,15 +225,23 @@ async def grok_page(request: Request):
 
 class GrokGenerateRequest(BaseModel):
     prompt: str
-    resolution: str = "1024x1024"
-    steps: str = "standard"
+    aspect_ratio: str = "16:9"
+    resolution: str = "1k"
+    image_base64: str = None
+
+
+class GrokVideoRequest(BaseModel):
+    prompt: str
+    aspect_ratio: str = "16:9"
+    resolution: str = "480p"
+    duration: int = 5
     image_base64: str = None
 
 
 @app.post("/grok/generate")
 async def grok_generate(req: GrokGenerateRequest):
-    """Generate image using xAI Grok API (Aurora model)."""
-    import os, base64
+    """Generate image using xAI Grok API."""
+    import os
     prompt = req.prompt.strip()
     if not prompt:
         from fastapi import HTTPException
@@ -244,53 +252,119 @@ async def grok_generate(req: GrokGenerateRequest):
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail="XAI_API_KEY not configured")
 
-    # Map steps to quality hint in prompt
-    quality_map = {"fast": "fast", "standard": "standard", "quality": "high quality, detailed"}
-    quality_hint = quality_map.get(req.steps, "standard")
-
-    # Parse resolution
-    try:
-        width, height = [int(x) for x in req.resolution.split("x")]
-    except Exception:
-        width, height = 1024, 1024
-
     payload = {
-        "model": "aurora",
-        "prompt": f"{prompt}, {quality_hint}",
+        "model": "grok-imagine-image",
+        "prompt": prompt,
         "n": 1,
-        "size": f"{width}x{height}",
+        "aspect_ratio": req.aspect_ratio,
+        "resolution": req.resolution,
         "response_format": "url",
     }
-
-    # If reference image provided, add it
     if req.image_base64:
-        payload["image"] = req.image_base64
+        payload["image_url"] = req.image_base64
 
-    logger.info(f"Grok generate: prompt={prompt[:50]}, resolution={req.resolution}, steps={req.steps}")
+    logger.info(f"Grok image generate: prompt={prompt[:50]}, aspect={req.aspect_ratio}, res={req.resolution}")
 
     try:
         async with httpx.AsyncClient(timeout=120) as client:
             response = await client.post(
                 "https://api.x.ai/v1/images/generations",
                 json=payload,
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                }
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
             )
-        logger.info(f"Grok API response status: {response.status_code}")
+        logger.info(f"Grok image API status: {response.status_code}")
         if response.status_code != 200:
-            logger.error(f"Grok API error: {response.text}")
+            logger.error(f"Grok image API error: {response.text}")
             from fastapi import HTTPException
             raise HTTPException(status_code=response.status_code, detail=response.text)
-
         data = response.json()
         image_url = data["data"][0]["url"]
         return {"image_url": image_url}
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Grok generate error: {e}")
+        logger.error(f"Grok image error: {e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/grok/video/start")
+async def grok_video_start(req: GrokVideoRequest):
+    """Start async video generation using xAI Grok API."""
+    import os
+    prompt = req.prompt.strip()
+    if not prompt:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Prompt is required")
+
+    api_key = os.environ.get("XAI_API_KEY", "")
+    if not api_key:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail="XAI_API_KEY not configured")
+
+    duration = max(1, min(15, req.duration))
+    payload = {
+        "model": "grok-imagine-video",
+        "prompt": prompt,
+        "duration": duration,
+        "aspect_ratio": req.aspect_ratio,
+        "resolution": req.resolution,
+    }
+    if req.image_base64:
+        payload["image_url"] = req.image_base64
+
+    logger.info(f"Grok video start: prompt={prompt[:50]}, duration={duration}s, aspect={req.aspect_ratio}")
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.post(
+                "https://api.x.ai/v1/videos/generations",
+                json=payload,
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+            )
+        logger.info(f"Grok video start status: {response.status_code}, body: {response.text[:200]}")
+        if response.status_code not in (200, 201, 202):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+        data = response.json()
+        request_id = data.get("request_id") or data.get("id")
+        return {"request_id": request_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Grok video start error: {e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/grok/video/status/{request_id}")
+async def grok_video_status(request_id: str):
+    """Poll video generation status."""
+    import os
+    api_key = os.environ.get("XAI_API_KEY", "")
+    if not api_key:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail="XAI_API_KEY not configured")
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            response = await client.get(
+                f"https://api.x.ai/v1/videos/{request_id}",
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
+        if response.status_code != 200:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+        data = response.json()
+        status = data.get("status", "pending")
+        if status == "done":
+            video = data.get("video", {})
+            return {"status": "done", "video_url": video.get("url"), "duration": video.get("duration")}
+        return {"status": status}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Grok video status error: {e}")
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=str(e))
 
