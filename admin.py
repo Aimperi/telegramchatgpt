@@ -391,6 +391,97 @@ async def grok_video_status(request_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class GrokRecognizeRequest(BaseModel):
+    image_base64: str
+
+
+@app.post("/grok/recognize")
+async def grok_recognize(req: GrokRecognizeRequest):
+    """Recognize product in image using xAI Grok vision API."""
+    import os, json
+    api_key = os.environ.get("XAI_API_KEY", "")
+    if not api_key:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail="XAI_API_KEY not configured")
+    if not req.image_base64:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="image_base64 is required")
+
+    system_prompt = (
+        "You are a product recognition assistant. Analyze the image and return a JSON object with these fields:\n"
+        "- product_name: short product name (1-5 words)\n"
+        "- seo_description: SEO-optimized product description, max 300 characters\n"
+        "- description: detailed product description, max 300 characters\n"
+        "- keywords: array of 5-10 relevant tags/keywords\n"
+        "Respond ONLY with valid JSON, no markdown, no extra text. Use the same language as the product's likely market (Russian preferred)."
+    )
+
+    payload = {
+        "model": "grok-2-vision-latest",
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": req.image_base64, "detail": "high"}
+                    },
+                    {
+                        "type": "text",
+                        "text": "Распознай товар на изображении и верни JSON с полями: product_name, seo_description (до 300 символов), description (до 300 символов), keywords (массив тегов)."
+                    }
+                ]
+            }
+        ],
+        "max_tokens": 600,
+        "temperature": 0.2,
+    }
+
+    logger.info(f"Grok recognize: image_base64 length={len(req.image_base64)}, prefix='{req.image_base64[:60]}'")
+
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            response = await client.post(
+                "https://api.x.ai/v1/chat/completions",
+                json=payload,
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+            )
+        logger.info(f"Grok recognize API status: {response.status_code}")
+        if response.status_code != 200:
+            logger.error(f"Grok recognize error: {response.text}")
+            from fastapi import HTTPException
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+
+        data = response.json()
+        content = data["choices"][0]["message"]["content"].strip()
+        logger.info(f"Grok recognize raw content: {content[:300]}")
+
+        # Strip markdown code fences if present
+        if content.startswith("```"):
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+            content = content.strip()
+
+        result = json.loads(content)
+        return {
+            "product_name": result.get("product_name", ""),
+            "seo_description": result.get("seo_description", ""),
+            "description": result.get("description", ""),
+            "keywords": result.get("keywords", []),
+        }
+    except json.JSONDecodeError as e:
+        logger.error(f"Grok recognize JSON parse error: {e}, content: {content}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=f"Failed to parse AI response: {e}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Grok recognize error: {e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/logout/")
 async def logout(request: Request):
     request.session.clear()

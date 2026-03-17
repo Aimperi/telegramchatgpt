@@ -109,6 +109,23 @@
         .btn-download:hover { border-color: var(--accent); }
         .btn-download.visible { display: block; }
 
+        /* RECOGNIZE RESULT */
+        .recognize-result { display: none; }
+        .recognize-result.visible { display: block; }
+        .result-cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 4px; }
+        .result-col { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+        .result-col-title { font-size: 11px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+        .result-col-content { font-size: 13px; color: var(--text); line-height: 1.6; }
+        .result-col-content .product-name { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+        .result-col-content .seo-desc { font-size: 12px; color: var(--muted); margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px; }
+        .tags-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+        .tag { background: rgba(255,107,53,0.12); border: 1px solid rgba(255,107,53,0.3); color: var(--accent); padding: 3px 10px; border-radius: 20px; font-size: 12px; }
+        .recognize-placeholder { text-align: center; color: var(--muted); padding: 40px 0; }
+        .recognize-placeholder .icon { font-size: 44px; margin-bottom: 10px; }
+
+        @media (max-width: 900px) {
+            .result-cols { grid-template-columns: 1fr; }
+        }
         @media (max-width: 768px) {
             .main { flex-direction: column; height: auto; }
             .panel { border-right: none; border-bottom: 1px solid var(--border); }
@@ -123,6 +140,7 @@
     <div class="mode-tabs">
         <button class="mode-tab active" onclick="switchMode('image')">🖼 Редактировать фото</button>
         <button class="mode-tab" onclick="switchMode('video')">🎬 Анимировать фото → Видео</button>
+        <button class="mode-tab" onclick="switchMode('recognize')">🔍 Распознать картинку</button>
     </div>
 </header>
 
@@ -188,7 +206,7 @@
         </div>
 
         <!-- Prompt -->
-        <div class="field">
+        <div class="field" id="promptField">
             <label>Промт</label>
             <textarea id="prompt" placeholder="Опишите что хотите сгенерировать..."></textarea>
         </div>
@@ -196,12 +214,21 @@
         <button class="btn-generate" id="generateBtn" onclick="generate()">
             <span id="genIcon">✨</span> <span id="genLabel">Генерировать изображение</span>
         </button>
+
+        <!-- RECOGNIZE MODE left panel -->
+        <div id="recognizeFields" style="display:none;">
+            <button class="btn-generate" id="recognizeBtn" onclick="recognize()" style="margin-top:0;">
+                <span>🔍</span> Распознать
+            </button>
+        </div>
     </div>
 
     <!-- RIGHT PANEL -->
     <div class="panel">
         <div class="panel-title">Результат</div>
 
+        <!-- Image/Video result -->
+        <div id="genResultWrap">
         <div class="result-area" id="resultArea">
             <div class="result-placeholder" id="placeholder">
                 <div class="icon" id="placeholderIcon">🖼</div>
@@ -218,6 +245,39 @@
 
         <div class="status-bar" id="statusBar"></div>
         <button class="btn-download" id="downloadBtn" onclick="downloadResult()">⬇ Скачать</button>
+        </div>
+
+        <!-- Recognize result -->
+        <div id="recognizeResultWrap" style="display:none;">
+            <div id="recognizePlaceholder" class="recognize-placeholder">
+                <div class="icon">🔍</div>
+                <p>Загрузите изображение и нажмите<br>«Распознать» для анализа</p>
+            </div>
+            <div class="loading-anim" id="recognizeLoadingAnim">
+                <div class="spinner"></div>
+                <div class="loading-text">Анализирую изображение...</div>
+            </div>
+            <div class="result-cols recognize-result" id="recognizeCols">
+                <div class="result-col">
+                    <div class="result-col-title">📦 Название товара</div>
+                    <div class="result-col-content">
+                        <div class="product-name" id="recProductName">—</div>
+                        <div class="seo-desc" id="recSeoDesc">—</div>
+                    </div>
+                </div>
+                <div class="result-col">
+                    <div class="result-col-title">📝 Описание товара</div>
+                    <div class="result-col-content" id="recDescription">—</div>
+                </div>
+                <div class="result-col">
+                    <div class="result-col-title">🏷 Ключевые слова</div>
+                    <div class="result-col-content">
+                        <div class="tags-wrap" id="recTags"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="status-bar" id="recognizeStatusBar" style="margin-top:10px;"></div>
+        </div>
     </div>
 </div>
 
@@ -228,14 +288,35 @@
 
     function switchMode(m) {
         mode = m;
-        document.querySelectorAll('.mode-tab').forEach((t, i) => t.classList.toggle('active', (i === 0 && m === 'image') || (i === 1 && m === 'video')));
+        document.querySelectorAll('.mode-tab').forEach((t, i) => {
+            t.classList.toggle('active', (i === 0 && m === 'image') || (i === 1 && m === 'video') || (i === 2 && m === 'recognize'));
+        });
         document.getElementById('imageFields').style.display = m === 'image' ? 'block' : 'none';
         document.getElementById('videoFields').style.display = m === 'video' ? 'block' : 'none';
-        document.getElementById('leftTitle').textContent = m === 'image' ? 'Настройки генерации изображения' : 'Настройки генерации видео';
-        document.getElementById('genLabel').textContent = m === 'image' ? 'Генерировать изображение' : 'Генерировать видео';
-        document.getElementById('uploadText').textContent = m === 'image' ? 'Нажмите чтобы загрузить\nреференс изображение (опционально)' : 'Нажмите чтобы загрузить\nисходное изображение для анимации';
-        document.getElementById('placeholderIcon').textContent = m === 'image' ? '🖼' : '🎬';
-        document.getElementById('placeholderText').textContent = m === 'image' ? 'Здесь появится\nсгенерированное изображение' : 'Здесь появится\nсгенерированное видео';
+        document.getElementById('promptField').style.display = m !== 'recognize' ? 'block' : 'none';
+        document.getElementById('generateBtn').style.display = m !== 'recognize' ? 'flex' : 'none';
+        document.getElementById('recognizeFields').style.display = m === 'recognize' ? 'block' : 'none';
+
+        // Right panel
+        document.getElementById('genResultWrap').style.display = m !== 'recognize' ? 'block' : 'none';
+        document.getElementById('recognizeResultWrap').style.display = m === 'recognize' ? 'block' : 'none';
+
+        if (m === 'image') {
+            document.getElementById('leftTitle').textContent = 'Настройки генерации изображения';
+            document.getElementById('genLabel').textContent = 'Генерировать изображение';
+            document.getElementById('uploadText').textContent = 'Нажмите чтобы загрузить\nреференс изображение (опционально)';
+            document.getElementById('placeholderIcon').textContent = '🖼';
+            document.getElementById('placeholderText').textContent = 'Здесь появится\nсгенерированное изображение';
+        } else if (m === 'video') {
+            document.getElementById('leftTitle').textContent = 'Настройки генерации видео';
+            document.getElementById('genLabel').textContent = 'Генерировать видео';
+            document.getElementById('uploadText').textContent = 'Нажмите чтобы загрузить\nисходное изображение для анимации';
+            document.getElementById('placeholderIcon').textContent = '🎬';
+            document.getElementById('placeholderText').textContent = 'Здесь появится\nсгенерированное видео';
+        } else {
+            document.getElementById('leftTitle').textContent = 'Загрузка изображения';
+            document.getElementById('uploadText').textContent = 'Нажмите чтобы загрузить\nизображение товара для анализа';
+        }
         clearResult();
     }
 
@@ -396,6 +477,54 @@
         const el = document.getElementById('statusBar');
         el.textContent = msg;
         el.className = 'status-bar' + (type ? ' ' + type : '');
+    }
+
+    async function recognize() {
+        if (!uploadedImageBase64) {
+            document.getElementById('recognizeStatusBar').textContent = 'Загрузите изображение для анализа';
+            document.getElementById('recognizeStatusBar').className = 'status-bar error';
+            return;
+        }
+        const btn = document.getElementById('recognizeBtn');
+        btn.disabled = true;
+        document.getElementById('recognizePlaceholder').style.display = 'none';
+        document.getElementById('recognizeCols').classList.remove('visible');
+        document.getElementById('recognizeLoadingAnim').classList.add('active');
+        document.getElementById('recognizeStatusBar').textContent = '';
+
+        try {
+            const res = await fetch('/grok/recognize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image_base64: uploadedImageBase64 })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Ошибка распознавания');
+
+            document.getElementById('recProductName').textContent = data.product_name || '—';
+            document.getElementById('recSeoDesc').textContent = data.seo_description || '—';
+            document.getElementById('recDescription').textContent = data.description || '—';
+
+            const tagsWrap = document.getElementById('recTags');
+            tagsWrap.innerHTML = '';
+            (data.keywords || []).forEach(tag => {
+                const span = document.createElement('span');
+                span.className = 'tag';
+                span.textContent = tag;
+                tagsWrap.appendChild(span);
+            });
+
+            document.getElementById('recognizeCols').classList.add('visible');
+            document.getElementById('recognizeStatusBar').textContent = 'Готово!';
+            document.getElementById('recognizeStatusBar').className = 'status-bar success';
+        } catch (err) {
+            document.getElementById('recognizePlaceholder').style.display = 'block';
+            document.getElementById('recognizeStatusBar').textContent = 'Ошибка: ' + err.message;
+            document.getElementById('recognizeStatusBar').className = 'status-bar error';
+        } finally {
+            document.getElementById('recognizeLoadingAnim').classList.remove('active');
+            btn.disabled = false;
+        }
     }
 
     function downloadResult() {
