@@ -428,10 +428,10 @@ async def grok_recognize(req: GrokRecognizeRequest):
         from fastapi import HTTPException
         raise HTTPException(status_code=400, detail="image_base64 is required")
 
-    # Try models in order until one works
-    vision_models = ["grok-2-vision", "grok-vision-beta", "grok-2-vision-1212", "grok-2-vision-latest"]
+    # No dedicated vision model in account — grok-3 and grok-4 support image input per xAI docs
+    vision_models = ["grok-3", "grok-4-0709", "grok-3-mini"]
 
-    # First, fetch available models to find the right one
+    # Find first available model that supports images
     working_model = None
     try:
         async with httpx.AsyncClient(timeout=10) as client:
@@ -443,29 +443,16 @@ async def grok_recognize(req: GrokRecognizeRequest):
             models_data = r.json()
             available = [m.get("id", "") for m in models_data.get("data", [])]
             logger.info(f"xAI available models: {available}")
-            # Find first vision model that's available
             for m in vision_models:
                 if m in available:
                     working_model = m
                     break
-            # If none matched exactly, look for any model with 'vision' in name
-            if not working_model:
-                for m in available:
-                    if "vision" in m.lower():
-                        working_model = m
-                        break
-            # Fallback: use grok-2 which supports images per docs
-            if not working_model:
-                for m in available:
-                    if "grok-2" in m and "vision" not in m and "mini" not in m:
-                        working_model = m
-                        break
             logger.info(f"Selected model for vision: {working_model}")
     except Exception as e:
         logger.warning(f"Could not fetch models list: {e}")
 
     if not working_model:
-        working_model = "grok-2-vision"
+        working_model = "grok-3"
         logger.warning(f"Falling back to default model: {working_model}")
 
     payload = {
