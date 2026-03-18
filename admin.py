@@ -555,6 +555,272 @@ async def openrouter_chat(req: OpenRouterChatRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/document/", response_class=HTMLResponse)
+async def document_page(request: Request):
+    return templates.TemplateResponse("document.html", {"request": request})
+
+
+@app.post("/document/analyze")
+async def document_analyze(request: Request):
+    """Parse PDF/DOCX, chunk text, analyze via Claude through OpenRouter."""
+    import os, json
+    from fastapi import HTTPException, UploadFile, File
+    from fastapi.datastructures import UploadFile as UploadFileType
+
+    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="OPENROUTER_API_KEY не задан в Railway")
+
+    form = await request.form()
+    file: UploadFileType = form.get("file")
+    if not file:
+        raise HTTPException(status_code=400, detail="Файл не загружен")
+
+    content = await file.read()
+    filename = file.filename.lower()
+
+    # --- Parse text ---
+    text = ""
+    try:
+        if filename.endswith(".pdf"):
+            import io
+            from pypdf import PdfReader
+            reader = PdfReader(io.BytesIO(content))
+            for page in reader.pages:
+                text += (page.extract_text() or "") + "\n"
+        elif filename.endswith(".docx"):
+            import io
+            from docx import Document
+            doc = Document(io.BytesIO(content))
+            for para in doc.paragraphs:
+                text += para.text + "\n"
+        else:
+            raise HTTPException(status_code=400, detail="Поддерживаются только PDF и DOCX")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Document parse error: {e}")
+        raise HTTPException(status_code=500, detail=f"Ошибка парсинга файла: {e}")
+
+    text = text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Не удалось извлечь текст из документа")
+
+    logger.info(f"Document analyze: file={filename}, text_len={len(text)}")
+
+    # --- Chunk text ~3500 chars ---
+    chunk_size = 3500
+    chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+    logger.info(f"Document chunks: {len(chunks)}")
+
+    PROMPT_TEMPLATE = """Ты юридический эксперт. Проанализируй следующий фрагмент договора и найди опасные или важные пункты.
+
+Для каждого найденного риска верни JSON объект в массиве "risks":
+- level: "high" (высокий риск), "medium" (средний риск), "low" (низкий риск)
+- title: краткое название риска (до 10 слов)
+- description: пояснение простым языком (до 150 символов)
+- quote: цитата из текста (до 200 символов, или null)
+
+Верни ТОЛЬКО валидный JSON без markdown:
+{"risks": [...]}
+
+Если рисков нет — верни {"risks": []}
+
+Фрагмент договора:
+"""
+
+    all_risks = []
+
+    for i, chunk in enumerate(chunks):
+        logger.info(f"Analyzing chunk {i+1}/{len(chunks)}, len={len(chunk)}")
+        try:
+            async with httpx.AsyncClient(timeout=60) as client:
+                r = await client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    json={
+                        "model": "anthropic/claude-sonnet-4-5",
+                        "messages": [{"role": "user", "content": PROMPT_TEMPLATE + chunk}],
+                        "max_tokens": 1500,
+                        "temperature": 0.1,
+                    },
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": "https://recipebotfather.xyz",
+                        "X-Title": "ContractAI",
+                    },
+                )
+            if r.status_code != 200:
+                logger.error(f"OpenRouter chunk {i+1} error: {r.status_code} {r.text[:200]}")
+                continue
+
+            data = r.json()
+            raw = data["choices"][0]["message"]["content"].strip()
+            logger.info(f"Chunk {i+1} raw response: {raw[:300]}")
+
+            # Strip markdown fences
+            if raw.startswith("```"):
+                raw = raw.split("```")[1]
+                if raw.startswith("json"):
+                    raw = raw[4:]
+                raw = raw.strip()
+
+            parsed = json.loads(raw)
+            chunk_risks = parsed.get("risks", [])
+            all_risks.extend(chunk_risks)
+            logger.info(f"Chunk {i+1}: found {len(chunk_risks)} risks")
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Chunk {i+1} JSON parse error: {e}, raw: '{raw[:200]}'")
+        except Exception as e:
+            logger.error(f"Chunk {i+1} error: {e}")
+
+    # --- Generate summary ---
+    summary = ""
+    high_count = sum(1 for r in all_risks if r.get("level") == "high")
+    mid_count = sum(1 for r in all_risks if r.get("level") == "medium")
+    low_count = sum(1 for r in all_risks if r.get("level") == "low")
+
+    if all_risks:
+        try:
+            summary_prompt = (
+                f"Договор проанализирован. Найдено рисков: высоких — {high_count}, средних — {mid_count}, низких — {low_count}.\n"
+                f"Основные риски:\n" +
+                "\n".join(f"- [{r.get('level','?')}] {r.get('title','')}: {r.get('description','')}" for r in all_risks[:10]) +
+                "\n\nНапиши краткую итоговую сводку на русском языке (2-3 предложения) для неюриста."
+            )
+            async with httpx.AsyncClient(timeout=30) as client:
+                r = await client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    json={
+                        "model": "anthropic/claude-sonnet-4-5",
+                        "messages": [{"role": "user", "content": summary_prompt}],
+                        "max_tokens": 300,
+                        "temperature": 0.3,
+                    },
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": "https://recipebotfather.xyz",
+                        "X-Title": "ContractAI",
+                    },
+                )
+            if r.status_code == 200:
+                summary = r.json()["choices"][0]["message"]["content"].strip()
+        except Exception as e:
+            logger.error(f"Summary generation error: {e}")
+            summary = f"Найдено {len(all_risks)} рисков: {high_count} высоких, {mid_count} средних, {low_count} низких."
+    else:
+        summary = "Серьёзных рисков не обнаружено. Договор выглядит стандартным."
+
+    return {"risks": all_risks, "summary": summary}
+
+
+class DocumentReportRequest(BaseModel):
+    risks: list
+    summary: str = ""
+
+
+@app.post("/document/report")
+async def document_report(req: DocumentReportRequest):
+    """Generate PDF report from analysis results."""
+    import io
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import cm
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.lib.enums import TA_LEFT, TA_CENTER
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=2*cm, rightMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
+
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle('Title', parent=styles['Normal'], fontSize=18, fontName='Helvetica-Bold', spaceAfter=12, alignment=TA_CENTER)
+    heading_style = ParagraphStyle('Heading', parent=styles['Normal'], fontSize=13, fontName='Helvetica-Bold', spaceAfter=6, spaceBefore=12)
+    body_style = ParagraphStyle('Body', parent=styles['Normal'], fontSize=10, fontName='Helvetica', spaceAfter=4, leading=14)
+    quote_style = ParagraphStyle('Quote', parent=styles['Normal'], fontSize=9, fontName='Helvetica-Oblique', spaceAfter=4, leftIndent=12, textColor=colors.grey)
+
+    LEVEL_COLORS = {
+        "high": colors.HexColor("#ef4444"),
+        "medium": colors.HexColor("#f59e0b"),
+        "low": colors.HexColor("#22c55e"),
+    }
+    LEVEL_LABELS = {"high": "ВЫСОКИЙ РИСК", "medium": "СРЕДНИЙ РИСК", "low": "НИЗКИЙ РИСК"}
+
+    story = []
+    story.append(Paragraph("Анализ договора — Отчёт о рисках", title_style))
+    story.append(Spacer(1, 0.3*cm))
+
+    from datetime import datetime
+    story.append(Paragraph(f"Дата: {datetime.now().strftime('%d.%m.%Y %H:%M')}", body_style))
+    story.append(Spacer(1, 0.4*cm))
+
+    # Summary
+    if req.summary:
+        story.append(Paragraph("Итоговая сводка", heading_style))
+        story.append(Paragraph(req.summary, body_style))
+        story.append(Spacer(1, 0.3*cm))
+
+    # Counts
+    risks = req.risks
+    high = [r for r in risks if r.get("level") == "high"]
+    mid = [r for r in risks if r.get("level") == "medium"]
+    low = [r for r in risks if r.get("level") == "low"]
+
+    count_data = [
+        ["Высокий риск", "Средний риск", "Низкий риск"],
+        [str(len(high)), str(len(mid)), str(len(low))],
+    ]
+    t = Table(count_data, colWidths=[5*cm, 5*cm, 5*cm])
+    t.setStyle(TableStyle([
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,0), (-1,0), 10),
+        ('FONTNAME', (0,1), (-1,1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0,1), (-1,1), 20),
+        ('TEXTCOLOR', (0,1), (0,1), LEVEL_COLORS["high"]),
+        ('TEXTCOLOR', (1,1), (1,1), LEVEL_COLORS["medium"]),
+        ('TEXTCOLOR', (2,1), (2,1), LEVEL_COLORS["low"]),
+        ('BOX', (0,0), (-1,-1), 0.5, colors.lightgrey),
+        ('INNERGRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#f1f5f9")),
+        ('ROWBACKGROUNDS', (0,1), (-1,1), [colors.white]),
+        ('TOPPADDING', (0,0), (-1,-1), 8),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+    ]))
+    story.append(t)
+    story.append(Spacer(1, 0.5*cm))
+
+    # Risks by section
+    for section_risks, level in [(high, "high"), (mid, "medium"), (low, "low")]:
+        if not section_risks:
+            continue
+        label = LEVEL_LABELS[level]
+        color = LEVEL_COLORS[level]
+        story.append(Paragraph(f'<font color="#{color.hexval()[2:]}">{label} ({len(section_risks)})</font>', heading_style))
+        for r in section_risks:
+            title = r.get("title", "")
+            desc = r.get("description", "")
+            quote = r.get("quote", "")
+            story.append(Paragraph(f"<b>{title}</b>", body_style))
+            if desc:
+                story.append(Paragraph(desc, body_style))
+            if quote:
+                story.append(Paragraph(f'"{quote}"', quote_style))
+            story.append(Spacer(1, 0.15*cm))
+
+    doc.build(story)
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=contract-analysis.pdf"}
+    )
+
+
 @app.get("/logout/")
 async def logout(request: Request):
     request.session.clear()

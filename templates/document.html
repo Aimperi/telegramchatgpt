@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Анализ договора</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f1117; --bg2: #161b27; --bg3: #1e2535;
+            --border: #2a3347; --text: #e8edf5; --muted: #8892a4;
+            --high: #ef4444; --high-bg: rgba(239,68,68,0.08); --high-border: rgba(239,68,68,0.25);
+            --mid: #f59e0b; --mid-bg: rgba(245,158,11,0.08); --mid-border: rgba(245,158,11,0.25);
+            --low: #22c55e; --low-bg: rgba(34,197,94,0.08); --low-border: rgba(34,197,94,0.25);
+            --accent: #3b82f6;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; gap: 14px; }
+        .logo { font-size: 20px; font-weight: 800; }
+        .logo span { color: var(--accent); }
+        .logo-sub { font-size: 12px; color: var(--muted); font-weight: 400; }
+
+        .wrap { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+
+        /* Upload zone */
+        .upload-zone {
+            border: 2px dashed var(--border); border-radius: 16px;
+            padding: 48px 32px; text-align: center; cursor: pointer;
+            transition: all 0.2s; background: var(--bg2); position: relative;
+        }
+        .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(59,130,246,0.04); }
+        .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .upload-icon { font-size: 48px; margin-bottom: 14px; }
+        .upload-title { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+        .upload-sub { font-size: 13px; color: var(--muted); line-height: 1.6; }
+        .upload-formats { display: inline-flex; gap: 8px; margin-top: 14px; }
+        .fmt-tag { background: var(--bg3); border: 1px solid var(--border); padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; color: var(--muted); }
+
+        .file-selected { margin-top: 16px; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; display: none; align-items: center; justify-content: space-between; }
+        .file-selected.show { display: flex; }
+        .file-name { font-size: 14px; font-weight: 500; }
+        .file-size { font-size: 12px; color: var(--muted); }
+        .file-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; padding: 0 4px; }
+        .file-remove:hover { color: var(--high); }
+
+        .btn-analyze {
+            width: 100%; margin-top: 20px; background: var(--accent); color: #fff;
+            border: none; padding: 14px; border-radius: 12px; font-size: 16px;
+            font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn-analyze:hover { background: #2563eb; transform: translateY(-1px); }
+        .btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .spin { display: none; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: sp 0.8s linear infinite; }
+        .spin.on { display: inline-block; }
+        @keyframes sp { to { transform: rotate(360deg); } }
+
+        /* Progress */
+        .progress-wrap { margin-top: 20px; display: none; }
+        .progress-wrap.show { display: block; }
+        .progress-label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+        .progress-bar-bg { background: var(--bg3); border-radius: 4px; height: 6px; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.4s ease; width: 0%; }
+        .progress-steps { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .step { font-size: 11px; padding: 3px 10px; border-radius: 20px; background: var(--bg3); border: 1px solid var(--border); color: var(--muted); }
+        .step.done { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.3); color: #22c55e; }
+        .step.active { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.3); color: var(--accent); }
+
+        /* Results */
+        .results { margin-top: 36px; display: none; }
+        .results.show { display: block; }
+
+        .summary-card {
+            background: var(--bg2); border: 1px solid var(--border); border-radius: 14px;
+            padding: 24px; margin-bottom: 28px;
+        }
+        .summary-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .summary-text { font-size: 14px; line-height: 1.75; color: var(--text); }
+
+        .risk-counts { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .risk-count { flex: 1; min-width: 100px; background: var(--bg3); border-radius: 10px; padding: 14px 16px; text-align: center; border: 1px solid var(--border); }
+        .risk-count .num { font-size: 28px; font-weight: 800; }
+        .risk-count .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .risk-count.high .num { color: var(--high); }
+        .risk-count.mid .num { color: var(--mid); }
+        .risk-count.low .num { color: var(--low); }
+
+        .section-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; margin-top: 24px; }
+
+        .risk-item {
+            border-radius: 12px; padding: 16px 18px; margin-bottom: 10px;
+            border: 1px solid; position: relative;
+        }
+        .risk-item.high { background: var(--high-bg); border-color: var(--high-border); }
+        .risk-item.mid { background: var(--mid-bg); border-color: var(--mid-border); }
+        .risk-item.low { background: var(--low-bg); border-color: var(--low-border); }
+
+        .risk-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+        .risk-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+        .risk-item.high .risk-badge { background: rgba(239,68,68,0.15); color: var(--high); }
+        .risk-item.mid .risk-badge { background: rgba(245,158,11,0.15); color: var(--mid); }
+        .risk-item.low .risk-badge { background: rgba(34,197,94,0.15); color: var(--low); }
+        .risk-title { font-size: 14px; font-weight: 600; line-height: 1.4; }
+        .risk-desc { font-size: 13px; color: var(--muted); line-height: 1.65; }
+        .risk-quote { font-size: 12px; color: var(--muted); margin-top: 8px; padding: 8px 12px; background: rgba(0,0,0,0.2); border-radius: 6px; border-left: 3px solid var(--border); font-style: italic; }
+
+        .btn-download {
+            margin-top: 24px; background: var(--bg3); color: var(--text);
+            border: 1px solid var(--border); padding: 12px 24px; border-radius: 10px;
+            font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif;
+            display: inline-flex; align-items: center; gap: 8px; transition: border-color 0.2s;
+        }
+        .btn-download:hover { border-color: var(--accent); }
+
+        .error-box { background: var(--high-bg); border: 1px solid var(--high-border); border-radius: 10px; padding: 14px 18px; font-size: 14px; color: var(--high); margin-top: 16px; display: none; }
+        .error-box.show { display: block; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <div class="logo">Договор<span>AI</span></div>
+        <div class="logo-sub">Анализ рисков договора</div>
+    </div>
+</header>
+
+<div class="wrap">
+
+    <!-- Upload -->
+    <div class="upload-zone" id="uploadZone"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="onDrop(event)">
+        <input type="file" id="fileInput" accept=".pdf,.docx" onchange="onFile(this.files[0])">
+        <div class="upload-icon">📄</div>
+        <div class="upload-title">Загрузите договор для анализа</div>
+        <div class="upload-sub">Перетащите файл или нажмите для выбора<br>Поддерживается до 100 страниц</div>
+        <div class="upload-formats">
+            <span class="fmt-tag">PDF</span>
+            <span class="fmt-tag">DOCX</span>
+        </div>
+    </div>
+
+    <div class="file-selected" id="fileSelected">
+        <div>
+            <div class="file-name" id="fileName">—</div>
+            <div class="file-size" id="fileSize">—</div>
+        </div>
+        <button class="file-remove" onclick="removeFile()">✕</button>
+    </div>
+
+    <button class="btn-analyze" id="analyzeBtn" onclick="analyze()" disabled>
+        <div class="spin" id="spin"></div>
+        <span id="btnTxt">🔍 Анализировать договор</span>
+    </button>
+
+    <div class="error-box" id="errorBox"></div>
+
+    <!-- Progress -->
+    <div class="progress-wrap" id="progressWrap">
+        <div class="progress-label" id="progressLabel">Подготовка...</div>
+        <div class="progress-bar-bg"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="progress-steps" id="progressSteps"></div>
+    </div>
+
+    <!-- Results -->
+    <div class="results" id="results">
+        <div class="risk-counts">
+            <div class="risk-count high"><div class="num" id="cntHigh">0</div><div class="lbl">Высокий риск</div></div>
+            <div class="risk-count mid"><div class="num" id="cntMid">0</div><div class="lbl">Средний риск</div></div>
+            <div class="risk-count low"><div class="num" id="cntLow">0</div><div class="lbl">Низкий риск</div></div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-title">📋 Итоговая сводка</div>
+            <div class="summary-text" id="summaryText">—</div>
+        </div>
+
+        <div id="riskList"></div>
+
+        <button class="btn-download" onclick="downloadReport()">⬇ Скачать отчёт PDF</button>
+    </div>
+
+</div>
+
+<script>
+let selectedFile = null;
+let analysisResult = null;
+
+function onDrop(e) {
+    e.preventDefault();
+    document.getElementById('uploadZone').classList.remove('drag');
+    const f = e.dataTransfer.files[0];
+    if (f) onFile(f);
+}
+
+function onFile(f) {
+    if (!f) return;
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (!['pdf', 'docx'].includes(ext)) {
+        showError('Поддерживаются только PDF и DOCX файлы');
+        return;
+    }
+    if (f.size > 50 * 1024 * 1024) {
+        showError('Файл слишком большой (максимум 50 МБ)');
+        return;
+    }
+    selectedFile = f;
+    document.getElementById('fileName').textContent = f.name;
+    document.getElementById('fileSize').textContent = (f.size / 1024).toFixed(0) + ' КБ';
+    document.getElementById('fileSelected').classList.add('show');
+    document.getElementById('analyzeBtn').disabled = false;
+    hideError();
+}
+
+function removeFile() {
+    selectedFile = null;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('fileSelected').classList.remove('show');
+    document.getElementById('analyzeBtn').disabled = true;
+    document.getElementById('results').classList.remove('show');
+    document.getElementById('progressWrap').classList.remove('show');
+}
+
+async function analyze() {
+    if (!selectedFile) return;
+
+    const btn = document.getElementById('analyzeBtn');
+    btn.disabled = true;
+    document.getElementById('spin').classList.add('on');
+    document.getElementById('btnTxt').textContent = 'Анализирую...';
+    document.getElementById('results').classList.remove('show');
+    document.getElementById('progressWrap').classList.add('show');
+    hideError();
+
+    setProgress(5, 'Загрузка файла...');
+    setSteps(['Загрузка', 'Парсинг', 'Разбивка на блоки', 'Анализ ИИ', 'Сводка'], 0);
+
+    const fd = new FormData();
+    fd.append('file', selectedFile);
+
+    try {
+        setProgress(15, 'Парсинг документа...');
+        setSteps(['Загрузка', 'Парсинг', 'Разбивка на блоки', 'Анализ ИИ', 'Сводка'], 1);
+
+        const res = await fetch('/document/analyze', { method: 'POST', body: fd });
+
+        setProgress(40, 'Анализ блоков через ИИ...');
+        setSteps(['Загрузка', 'Парсинг', 'Разбивка на блоки', 'Анализ ИИ', 'Сводка'], 3);
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || JSON.stringify(data));
+
+        setProgress(90, 'Формирование отчёта...');
+        setSteps(['Загрузка', 'Парсинг', 'Разбивка на блоки', 'Анализ ИИ', 'Сводка'], 4);
+
+        await new Promise(r => setTimeout(r, 400));
+        setProgress(100, 'Готово!');
+
+        analysisResult = data;
+        renderResults(data);
+
+    } catch (e) {
+        showError('Ошибка анализа: ' + e.message);
+        document.getElementById('progressWrap').classList.remove('show');
+    } finally {
+        btn.disabled = false;
+        document.getElementById('spin').classList.remove('on');
+        document.getElementById('btnTxt').textContent = '🔍 Анализировать договор';
+    }
+}
+
+function renderResults(data) {
+    const risks = data.risks || [];
+    const high = risks.filter(r => r.level === 'high');
+    const mid = risks.filter(r => r.level === 'medium');
+    const low = risks.filter(r => r.level === 'low');
+
+    document.getElementById('cntHigh').textContent = high.length;
+    document.getElementById('cntMid').textContent = mid.length;
+    document.getElementById('cntLow').textContent = low.length;
+    document.getElementById('summaryText').textContent = data.summary || '—';
+
+    const list = document.getElementById('riskList');
+    list.innerHTML = '';
+
+    const sections = [
+        { items: high, cls: 'high', badge: '🔴 Высокий риск', title: 'Высокий риск' },
+        { items: mid, cls: 'mid', badge: '🟡 Средний риск', title: 'Средний риск' },
+        { items: low, cls: 'low', badge: '🟢 Низкий риск', title: 'Низкий риск' },
+    ];
+
+    for (const sec of sections) {
+        if (!sec.items.length) continue;
+        const h = document.createElement('div');
+        h.className = 'section-title';
+        h.textContent = sec.title + ` (${sec.items.length})`;
+        list.appendChild(h);
+
+        for (const r of sec.items) {
+            const el = document.createElement('div');
+            el.className = `risk-item ${sec.cls}`;
+            el.innerHTML = `
+                <div class="risk-header">
+                    <span class="risk-badge">${sec.badge}</span>
+                    <span class="risk-title">${esc(r.title)}</span>
+                </div>
+                <div class="risk-desc">${esc(r.description)}</div>
+                ${r.quote ? `<div class="risk-quote">${esc(r.quote)}</div>` : ''}
+            `;
+            list.appendChild(el);
+        }
+    }
+
+    document.getElementById('results').classList.add('show');
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function setProgress(pct, label) {
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = label;
+}
+
+function setSteps(steps, activeIdx) {
+    const el = document.getElementById('progressSteps');
+    el.innerHTML = steps.map((s, i) =>
+        `<span class="step ${i < activeIdx ? 'done' : i === activeIdx ? 'active' : ''}">${i < activeIdx ? '✓ ' : ''}${s}</span>`
+    ).join('');
+}
+
+function showError(msg) {
+    const el = document.getElementById('errorBox');
+    el.textContent = msg;
+    el.classList.add('show');
+}
+
+function hideError() {
+    document.getElementById('errorBox').classList.remove('show');
+}
+
+function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function downloadReport() {
+    if (!analysisResult) return;
+    const res = await fetch('/document/report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(analysisResult)
+    });
+    if (!res.ok) { showError('Ошибка генерации PDF'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'contract-analysis.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
