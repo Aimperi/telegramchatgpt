@@ -229,6 +229,13 @@ async def settings(request: Request):
     })
 
 
+@app.get("/video/", response_class=HTMLResponse)
+async def video_page(request: Request):
+    if not is_authenticated(request):
+        return RedirectResponse(url="/admin/", status_code=302)
+    return templates.TemplateResponse("video.html", {"request": request})
+
+
 @app.get("/grok/", response_class=HTMLResponse)
 async def grok_page(request: Request):
     return templates.TemplateResponse("grok.html", {"request": request})

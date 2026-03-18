@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video — Admin</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f0f1a; min-height: 100vh; color: #fff; display: flex;
+        }
+        .sidebar {
+            width: 220px; min-height: 100vh; background: #1a1a2e;
+            border-right: 1px solid #2a2a4a; display: flex; flex-direction: column;
+            position: fixed; top: 0; left: 0; bottom: 0;
+        }
+        .sidebar-brand {
+            padding: 24px 20px; font-size: 16px; font-weight: 700;
+            border-bottom: 1px solid #2a2a4a; display: flex; align-items: center; gap: 10px;
+        }
+        .sidebar-brand span { font-size: 22px; }
+        .sidebar-nav { flex: 1; padding: 16px 0; }
+        .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 20px; font-size: 14px; font-weight: 500;
+            color: #6b7280; text-decoration: none;
+            transition: all 0.2s; border-left: 3px solid transparent;
+        }
+        .nav-item:hover { color: #e5e7eb; background: #12122a; }
+        .nav-item.active { color: #6366f1; border-left-color: #6366f1; background: #12122a; }
+        .nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
+        .sidebar-footer { padding: 16px 20px; border-top: 1px solid #2a2a4a; }
+        .btn-logout {
+            display: flex; align-items: center; gap: 10px; width: 100%;
+            padding: 10px 12px; background: transparent; border: 1px solid #2a2a4a;
+            border-radius: 8px; color: #6b7280; font-size: 14px; cursor: pointer;
+            text-decoration: none; transition: all 0.2s;
+        }
+        .btn-logout:hover { border-color: #6366f1; color: #fff; }
+        .main { margin-left: 220px; flex: 1; display: flex; flex-direction: column; }
+        .topbar {
+            padding: 20px 32px; border-bottom: 1px solid #2a2a4a;
+            background: #1a1a2e; font-size: 18px; font-weight: 600; color: #e5e7eb;
+        }
+        .content { padding: 40px 32px; }
+        .placeholder-card {
+            background: #1a1a2e; border: 1px solid #2a2a4a;
+            border-radius: 16px; padding: 60px 40px;
+            text-align: center; max-width: 560px;
+        }
+        .placeholder-icon { font-size: 56px; margin-bottom: 20px; }
+        .placeholder-title { font-size: 20px; font-weight: 600; color: #e5e7eb; margin-bottom: 10px; }
+        .placeholder-desc { font-size: 14px; color: #6b7280; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-brand"><span>👨‍🍳</span> RecipeBot</div>
+        <nav class="sidebar-nav">
+            <a href="/dashboard/" class="nav-item"><span class="icon">📊</span> Dashboard</a>
+            <a href="/monitoring/" class="nav-item"><span class="icon">📡</span> Monitoring</a>
+            <a href="/settings/" class="nav-item"><span class="icon">⚙️</span> Settings</a>
+            <a href="/video/" class="nav-item active"><span class="icon">🎬</span> Video</a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="/logout/" class="btn-logout"><span>🚪</span> Выйти</a>
+        </div>
+    </aside>
+
+    <div class="main">
+        <div class="topbar">Video</div>
+        <div class="content">
+            <div class="placeholder-card">
+                <div class="placeholder-icon">🎬</div>
+                <div class="placeholder-title">Видео хранилище</div>
+                <div class="placeholder-desc">Раздел в разработке.<br>Здесь будет управление видеофайлами через Cloudflare R2.</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
