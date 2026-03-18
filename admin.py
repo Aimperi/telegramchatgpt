@@ -255,9 +255,10 @@ async def video_storage_info(request: Request):
         # List objects via Cloudflare R2 S3-compatible API
         import boto3
         from botocore.config import Config
+        endpoint = os.environ.get("CF_R2_ENDPOINT", f"https://{account_id}.r2.cloudflarestorage.com")
         s3 = boto3.client(
             "s3",
-            endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
+            endpoint_url=endpoint,
             aws_access_key_id=os.environ.get("CF_R2_ACCESS_KEY_ID", ""),
             aws_secret_access_key=os.environ.get("CF_R2_SECRET_ACCESS_KEY", ""),
             config=Config(signature_version="s3v4"),
@@ -322,9 +323,10 @@ async def video_upload(request: Request):
     try:
         import boto3
         from botocore.config import Config
+        endpoint = os.environ.get("CF_R2_ENDPOINT", f"https://{account_id}.r2.cloudflarestorage.com")
         s3 = boto3.client(
             "s3",
-            endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
+            endpoint_url=endpoint,
             aws_access_key_id=os.environ.get("CF_R2_ACCESS_KEY_ID", ""),
             aws_secret_access_key=os.environ.get("CF_R2_SECRET_ACCESS_KEY", ""),
             config=Config(signature_version="s3v4"),
@@ -368,9 +370,10 @@ async def video_delete(req: VideoDeleteRequest, request: Request):
     try:
         import boto3
         from botocore.config import Config
+        endpoint = os.environ.get("CF_R2_ENDPOINT", f"https://{account_id}.r2.cloudflarestorage.com")
         s3 = boto3.client(
             "s3",
-            endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
+            endpoint_url=endpoint,
             aws_access_key_id=os.environ.get("CF_R2_ACCESS_KEY_ID", ""),
             aws_secret_access_key=os.environ.get("CF_R2_SECRET_ACCESS_KEY", ""),
             config=Config(signature_version="s3v4"),
