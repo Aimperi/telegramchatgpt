@@ -42,16 +42,142 @@
         .topbar {
             padding: 20px 32px; border-bottom: 1px solid #2a2a4a;
             background: #1a1a2e; font-size: 18px; font-weight: 600; color: #e5e7eb;
+            display: flex; align-items: center; justify-content: space-between;
         }
-        .content { padding: 40px 32px; }
-        .placeholder-card {
+        .content { padding: 32px; }
+
+        /* Storage bar */
+        .storage-card {
             background: #1a1a2e; border: 1px solid #2a2a4a;
-            border-radius: 16px; padding: 60px 40px;
-            text-align: center; max-width: 560px;
+            border-radius: 14px; padding: 24px 28px; margin-bottom: 28px;
+            display: flex; align-items: center; gap: 32px; flex-wrap: wrap;
         }
-        .placeholder-icon { font-size: 56px; margin-bottom: 20px; }
-        .placeholder-title { font-size: 20px; font-weight: 600; color: #e5e7eb; margin-bottom: 10px; }
-        .placeholder-desc { font-size: 14px; color: #6b7280; line-height: 1.6; }
+        .storage-info { flex: 1; min-width: 200px; }
+        .storage-title { font-size: 13px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+        .storage-bar-wrap { height: 8px; background: #2a2a4a; border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+        .storage-bar { height: 100%; background: linear-gradient(90deg, #6366f1, #818cf8); border-radius: 4px; transition: width 0.5s ease; }
+        .storage-bar.warn { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .storage-bar.danger { background: linear-gradient(90deg, #ef4444, #f87171); }
+        .storage-nums { display: flex; justify-content: space-between; font-size: 13px; color: #9ca3af; }
+        .storage-nums strong { color: #e5e7eb; }
+        .storage-stats { display: flex; gap: 24px; flex-wrap: wrap; }
+        .storage-stat { text-align: center; }
+        .storage-stat .val { font-size: 22px; font-weight: 700; color: #6366f1; }
+        .storage-stat .lbl { font-size: 12px; color: #6b7280; margin-top: 2px; }
+        .btn-refresh {
+            background: #12122a; border: 1px solid #2a2a4a; color: #9ca3af;
+            padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer;
+            transition: all 0.2s; font-family: inherit;
+        }
+        .btn-refresh:hover { border-color: #6366f1; color: #fff; }
+
+        /* Video grid */
+        .section-header {
+            display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;
+        }
+        .section-title { font-size: 15px; font-weight: 600; color: #e5e7eb; }
+        .videos-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;
+        }
+        .video-card {
+            background: #1a1a2e; border: 1px solid #2a2a4a;
+            border-radius: 14px; overflow: hidden; transition: border-color 0.2s, transform 0.2s;
+            cursor: pointer;
+        }
+        .video-card:hover { border-color: #6366f1; transform: translateY(-2px); }
+        .video-thumb {
+            width: 100%; aspect-ratio: 16/9; background: #12122a;
+            display: flex; align-items: center; justify-content: center;
+            position: relative; overflow: hidden;
+        }
+        .video-thumb video { width: 100%; height: 100%; object-fit: cover; }
+        .video-thumb .no-video { font-size: 40px; color: #2a2a4a; }
+        .video-thumb .slot-num {
+            position: absolute; top: 8px; left: 10px;
+            background: rgba(0,0,0,0.6); color: #6b7280;
+            font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+        }
+        .video-thumb .uploaded-badge {
+            position: absolute; top: 8px; right: 10px;
+            background: rgba(99,102,241,0.85); color: #fff;
+            font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+        }
+        .video-body { padding: 16px; }
+        .video-name { font-size: 14px; font-weight: 600; color: #e5e7eb; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .video-meta { font-size: 12px; color: #6b7280; }
+        .video-actions { display: flex; gap: 8px; margin-top: 12px; }
+        .btn-sm {
+            flex: 1; padding: 7px 10px; border-radius: 8px; font-size: 12px;
+            font-weight: 500; cursor: pointer; border: 1px solid #2a2a4a;
+            background: #12122a; color: #9ca3af; transition: all 0.2s; font-family: inherit;
+            text-align: center;
+        }
+        .btn-sm:hover { border-color: #6366f1; color: #fff; }
+        .btn-sm.danger:hover { border-color: #ef4444; color: #f87171; }
+        .btn-sm.primary { background: #6366f1; border-color: #6366f1; color: #fff; }
+        .btn-sm.primary:hover { background: #4f46e5; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7); z-index: 200;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: #1a1a2e; border: 1px solid #2a2a4a;
+            border-radius: 16px; padding: 32px; width: 100%; max-width: 480px;
+            position: relative;
+        }
+        .modal-title { font-size: 17px; font-weight: 700; color: #e5e7eb; margin-bottom: 24px; }
+        .modal-close {
+            position: absolute; top: 16px; right: 16px;
+            background: none; border: none; color: #6b7280; font-size: 20px;
+            cursor: pointer; line-height: 1;
+        }
+        .modal-close:hover { color: #fff; }
+        .field { margin-bottom: 16px; }
+        .field label { display: block; font-size: 13px; color: #6b7280; margin-bottom: 6px; font-weight: 500; }
+        .field input[type=text] {
+            width: 100%; background: #12122a; border: 1px solid #2a2a4a;
+            border-radius: 8px; padding: 10px 14px; color: #e5e7eb;
+            font-size: 14px; outline: none; transition: border-color 0.2s; font-family: inherit;
+        }
+        .field input[type=text]:focus { border-color: #6366f1; }
+        .upload-zone {
+            width: 100%; border: 2px dashed #2a2a4a; border-radius: 10px;
+            padding: 28px; text-align: center; cursor: pointer;
+            transition: border-color 0.2s; position: relative;
+        }
+        .upload-zone:hover { border-color: #6366f1; }
+        .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        .upload-zone .uz-icon { font-size: 32px; margin-bottom: 8px; }
+        .upload-zone .uz-text { font-size: 13px; color: #6b7280; }
+        .upload-zone.has-file { border-color: #6366f1; background: rgba(99,102,241,0.05); }
+        .upload-zone .uz-filename { font-size: 13px; color: #818cf8; font-weight: 500; margin-top: 6px; }
+        .progress-wrap { height: 6px; background: #2a2a4a; border-radius: 3px; overflow: hidden; margin-top: 12px; display: none; }
+        .progress-fill { height: 100%; background: #6366f1; border-radius: 3px; transition: width 0.3s; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-modal {
+            flex: 1; padding: 11px; border-radius: 10px; font-size: 14px; font-weight: 600;
+            cursor: pointer; border: none; transition: all 0.2s; font-family: inherit;
+        }
+        .btn-modal.primary { background: #6366f1; color: #fff; }
+        .btn-modal.primary:hover { background: #4f46e5; }
+        .btn-modal.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-modal.secondary { background: #12122a; border: 1px solid #2a2a4a; color: #9ca3af; }
+        .btn-modal.secondary:hover { border-color: #6366f1; color: #fff; }
+        .modal-status { font-size: 13px; margin-top: 10px; min-height: 18px; }
+        .modal-status.error { color: #f87171; }
+        .modal-status.success { color: #4ade80; }
+
+        /* Delete confirm */
+        .delete-modal .modal-title { color: #f87171; }
+        .delete-modal p { font-size: 14px; color: #9ca3af; margin-bottom: 20px; line-height: 1.6; }
+        .btn-modal.danger { background: #ef4444; color: #fff; }
+        .btn-modal.danger:hover { background: #dc2626; }
+
+        .empty-slot .video-name { color: #4b5563; font-style: italic; }
     </style>
 </head>
 <body>
@@ -69,14 +195,294 @@
     </aside>
 
     <div class="main">
-        <div class="topbar">Video</div>
+        <div class="topbar">
+            Video Storage
+            <button class="btn-refresh" onclick="loadStorage()">↻ Обновить</button>
+        </div>
         <div class="content">
-            <div class="placeholder-card">
-                <div class="placeholder-icon">🎬</div>
-                <div class="placeholder-title">Видео хранилище</div>
-                <div class="placeholder-desc">Раздел в разработке.<br>Здесь будет управление видеофайлами через Cloudflare R2.</div>
+
+            <!-- Storage stats -->
+            <div class="storage-card">
+                <div class="storage-info">
+                    <div class="storage-title">☁️ Cloudflare R2 — использование</div>
+                    <div class="storage-bar-wrap">
+                        <div class="storage-bar" id="storageBar" style="width:0%"></div>
+                    </div>
+                    <div class="storage-nums">
+                        <span>Использовано: <strong id="usedSize">—</strong></span>
+                        <span>Всего: <strong id="totalSize">10 GB</strong></span>
+                    </div>
+                </div>
+                <div class="storage-stats">
+                    <div class="storage-stat">
+                        <div class="val" id="freeSize">—</div>
+                        <div class="lbl">Свободно</div>
+                    </div>
+                    <div class="storage-stat">
+                        <div class="val" id="fileCount">—</div>
+                        <div class="lbl">Файлов</div>
+                    </div>
+                    <div class="storage-stat">
+                        <div class="val" id="usedPct">—</div>
+                        <div class="lbl">Занято</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video slots -->
+            <div class="section-header">
+                <div class="section-title">🎬 Видео слоты (5)</div>
+            </div>
+            <div class="videos-grid" id="videosGrid"></div>
+        </div>
+    </div>
+
+    <!-- Upload / Edit Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeModal('editModal')">✕</button>
+            <div class="modal-title" id="editModalTitle">Слот #1</div>
+            <div class="field">
+                <label>Название видео</label>
+                <input type="text" id="editName" placeholder="Введите название...">
+            </div>
+            <div class="field">
+                <label>Загрузить видео в R2</label>
+                <div class="upload-zone" id="uploadZone">
+                    <input type="file" id="fileInput" accept="video/*" onchange="onFileSelect(event)">
+                    <div class="uz-icon">📁</div>
+                    <div class="uz-text">Нажмите или перетащите видеофайл</div>
+                    <div class="uz-filename" id="uzFilename"></div>
+                </div>
+                <div class="progress-wrap" id="progressWrap">
+                    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+                </div>
+            </div>
+            <div class="modal-status" id="editStatus"></div>
+            <div class="modal-actions">
+                <button class="btn-modal secondary" onclick="closeModal('editModal')">Отмена</button>
+                <button class="btn-modal primary" id="uploadBtn" onclick="uploadVideo()">⬆ Загрузить</button>
             </div>
         </div>
     </div>
+
+    <!-- Delete Modal -->
+    <div class="modal-overlay" id="deleteModal">
+        <div class="modal delete-modal">
+            <button class="modal-close" onclick="closeModal('deleteModal')">✕</button>
+            <div class="modal-title">🗑 Удалить видео?</div>
+            <p id="deleteDesc">Файл будет удалён из R2 Object Storage. Это действие нельзя отменить.</p>
+            <div class="modal-status" id="deleteStatus"></div>
+            <div class="modal-actions">
+                <button class="btn-modal secondary" onclick="closeModal('deleteModal')">Отмена</button>
+                <button class="btn-modal danger" id="deleteBtn" onclick="confirmDelete()">🗑 Удалить</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // 5 fixed slots
+    const SLOTS = [1, 2, 3, 4, 5];
+    let videos = {}; // key: slot number, value: {name, key, size, url}
+    let activeSlot = null;
+    let selectedFile = null;
+
+    async function loadStorage() {
+        try {
+            const res = await fetch('/video/storage/info');
+            const data = await res.json();
+            if (data.error) { console.warn('R2 not configured:', data.error); renderGrid({}); return; }
+
+            // Update storage bar
+            const usedBytes = data.used_bytes || 0;
+            const totalBytes = 10 * 1024 * 1024 * 1024; // 10 GB
+            const pct = Math.min(100, (usedBytes / totalBytes) * 100);
+            document.getElementById('storageBar').style.width = pct + '%';
+            const bar = document.getElementById('storageBar');
+            bar.className = 'storage-bar' + (pct > 90 ? ' danger' : pct > 70 ? ' warn' : '');
+            document.getElementById('usedSize').textContent = formatBytes(usedBytes);
+            document.getElementById('freeSize').textContent = formatBytes(totalBytes - usedBytes);
+            document.getElementById('fileCount').textContent = data.file_count || 0;
+            document.getElementById('usedPct').textContent = pct.toFixed(1) + '%';
+
+            // Build videos map from R2 objects
+            videos = {};
+            (data.objects || []).forEach(obj => {
+                const m = obj.key.match(/^slot(\d+)\//);
+                if (m) {
+                    const slot = parseInt(m[1]);
+                    videos[slot] = { name: obj.name || obj.key, key: obj.key, size: obj.size, url: obj.url };
+                }
+            });
+            renderGrid(videos);
+        } catch (e) {
+            console.error(e);
+            renderGrid({});
+        }
+    }
+
+    function renderGrid(vids) {
+        const grid = document.getElementById('videosGrid');
+        grid.innerHTML = '';
+        SLOTS.forEach(slot => {
+            const v = vids[slot];
+            const card = document.createElement('div');
+            card.className = 'video-card' + (v ? '' : ' empty-slot');
+            card.innerHTML = `
+                <div class="video-thumb">
+                    ${v && v.url ? `<video src="${v.url}" preload="metadata"></video>` : '<div class="no-video">🎬</div>'}
+                    <div class="slot-num">Слот ${slot}</div>
+                    ${v ? '<div class="uploaded-badge">✓ Загружено</div>' : ''}
+                </div>
+                <div class="video-body">
+                    <div class="video-name">${v ? escHtml(v.name) : 'Пустой слот'}</div>
+                    <div class="video-meta">${v ? formatBytes(v.size) : 'Нет файла'}</div>
+                    <div class="video-actions">
+                        <button class="btn-sm primary" onclick="openEdit(${slot})">✏ ${v ? 'Изменить' : 'Загрузить'}</button>
+                        ${v ? `<button class="btn-sm danger" onclick="openDelete(${slot})">🗑 Удалить</button>` : ''}
+                    </div>
+                </div>`;
+            grid.appendChild(card);
+        });
+    }
+
+    function openEdit(slot) {
+        activeSlot = slot;
+        selectedFile = null;
+        const v = videos[slot];
+        document.getElementById('editModalTitle').textContent = `Слот #${slot}${v ? ' — ' + v.name : ''}`;
+        document.getElementById('editName').value = v ? v.name : '';
+        document.getElementById('uzFilename').textContent = '';
+        document.getElementById('uploadZone').classList.remove('has-file');
+        document.getElementById('progressWrap').style.display = 'none';
+        document.getElementById('progressFill').style.width = '0%';
+        document.getElementById('editStatus').textContent = '';
+        document.getElementById('editStatus').className = 'modal-status';
+        document.getElementById('fileInput').value = '';
+        document.getElementById('editModal').classList.add('open');
+    }
+
+    function openDelete(slot) {
+        activeSlot = slot;
+        const v = videos[slot];
+        document.getElementById('deleteDesc').textContent =
+            `Удалить "${v ? v.name : 'файл'}" из R2 Object Storage? Это действие нельзя отменить.`;
+        document.getElementById('deleteStatus').textContent = '';
+        document.getElementById('deleteModal').classList.add('open');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('open');
+    }
+
+    function onFileSelect(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        selectedFile = file;
+        document.getElementById('uzFilename').textContent = file.name + ' (' + formatBytes(file.size) + ')';
+        document.getElementById('uploadZone').classList.add('has-file');
+    }
+
+    async function uploadVideo() {
+        const name = document.getElementById('editName').value.trim();
+        if (!name) { setEditStatus('Введите название видео', 'error'); return; }
+        if (!selectedFile) { setEditStatus('Выберите видеофайл', 'error'); return; }
+
+        const btn = document.getElementById('uploadBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Загружаю...';
+        document.getElementById('progressWrap').style.display = 'block';
+        setEditStatus('Загружаю файл...', '');
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('slot', activeSlot);
+        formData.append('name', name);
+
+        try {
+            const xhr = new XMLHttpRequest();
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const pct = Math.round((e.loaded / e.total) * 100);
+                    document.getElementById('progressFill').style.width = pct + '%';
+                    setEditStatus(`Загружаю... ${pct}%`, '');
+                }
+            };
+            xhr.onload = async () => {
+                btn.disabled = false;
+                btn.textContent = '⬆ Загрузить';
+                if (xhr.status === 200) {
+                    setEditStatus('Загружено успешно!', 'success');
+                    setTimeout(() => { closeModal('editModal'); loadStorage(); }, 1000);
+                } else {
+                    const err = JSON.parse(xhr.responseText);
+                    setEditStatus('Ошибка: ' + (err.detail || xhr.responseText), 'error');
+                }
+            };
+            xhr.onerror = () => {
+                btn.disabled = false;
+                btn.textContent = '⬆ Загрузить';
+                setEditStatus('Ошибка сети', 'error');
+            };
+            xhr.open('POST', '/video/upload');
+            xhr.send(formData);
+        } catch (e) {
+            btn.disabled = false;
+            btn.textContent = '⬆ Загрузить';
+            setEditStatus('Ошибка: ' + e.message, 'error');
+        }
+    }
+
+    async function confirmDelete() {
+        const v = videos[activeSlot];
+        if (!v) return;
+        const btn = document.getElementById('deleteBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Удаляю...';
+        try {
+            const res = await fetch('/video/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: v.key })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Ошибка');
+            document.getElementById('deleteStatus').textContent = 'Удалено!';
+            document.getElementById('deleteStatus').className = 'modal-status success';
+            setTimeout(() => { closeModal('deleteModal'); loadStorage(); }, 800);
+        } catch (e) {
+            document.getElementById('deleteStatus').textContent = 'Ошибка: ' + e.message;
+            document.getElementById('deleteStatus').className = 'modal-status error';
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '🗑 Удалить';
+        }
+    }
+
+    function setEditStatus(msg, type) {
+        const el = document.getElementById('editStatus');
+        el.textContent = msg;
+        el.className = 'modal-status' + (type ? ' ' + type : '');
+    }
+
+    function formatBytes(b) {
+        if (!b) return '0 B';
+        if (b < 1024) return b + ' B';
+        if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+        if (b < 1024 * 1024 * 1024) return (b / 1024 / 1024).toFixed(1) + ' MB';
+        return (b / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+    }
+
+    function escHtml(s) {
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(el => {
+        el.addEventListener('click', (e) => { if (e.target === el) el.classList.remove('open'); });
+    });
+
+    loadStorage();
+</script>
 </body>
 </html>

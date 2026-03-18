@@ -236,6 +236,155 @@ async def video_page(request: Request):
     return templates.TemplateResponse("video.html", {"request": request})
 
 
+@app.get("/video/storage/info")
+async def video_storage_info(request: Request):
+    """Return R2 bucket usage stats and list of objects."""
+    import os
+    if not is_authenticated(request):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    account_id = os.environ.get("CF_ACCOUNT_ID", "")
+    bucket_name = os.environ.get("CF_R2_BUCKET", "")
+    api_token = os.environ.get("CF_R2_TOKEN", "")
+
+    if not all([account_id, bucket_name, api_token]):
+        return {"error": "R2 not configured. Set CF_ACCOUNT_ID, CF_R2_BUCKET, CF_R2_TOKEN in Railway."}
+
+    try:
+        # List objects via Cloudflare R2 S3-compatible API
+        import boto3
+        from botocore.config import Config
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
+            aws_access_key_id=os.environ.get("CF_R2_ACCESS_KEY_ID", ""),
+            aws_secret_access_key=os.environ.get("CF_R2_SECRET_ACCESS_KEY", ""),
+            config=Config(signature_version="s3v4"),
+            region_name="auto",
+        )
+        resp = s3.list_objects_v2(Bucket=bucket_name)
+        objects = []
+        total_bytes = 0
+        for obj in resp.get("Contents", []):
+            key = obj["Key"]
+            size = obj["Size"]
+            total_bytes += size
+            # Extract name from metadata key pattern slot{n}/filename
+            name = key.split("/", 1)[-1] if "/" in key else key
+            # Generate presigned URL valid 1 hour
+            url = s3.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": bucket_name, "Key": key},
+                ExpiresIn=3600,
+            )
+            objects.append({"key": key, "name": name, "size": size, "url": url})
+
+        return {
+            "used_bytes": total_bytes,
+            "file_count": len(objects),
+            "objects": objects,
+        }
+    except Exception as e:
+        logger.error(f"R2 storage info error: {e}")
+        return {"error": str(e)}
+
+
+@app.post("/video/upload")
+async def video_upload(request: Request):
+    """Upload video file to R2 into slot{n}/filename."""
+    import os
+    if not is_authenticated(request):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    account_id = os.environ.get("CF_ACCOUNT_ID", "")
+    bucket_name = os.environ.get("CF_R2_BUCKET", "")
+    if not all([account_id, bucket_name,
+                os.environ.get("CF_R2_ACCESS_KEY_ID"),
+                os.environ.get("CF_R2_SECRET_ACCESS_KEY")]):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail="R2 not configured. Set CF_ACCOUNT_ID, CF_R2_BUCKET, CF_R2_ACCESS_KEY_ID, CF_R2_SECRET_ACCESS_KEY in Railway.")
+
+    form = await request.form()
+    file = form.get("file")
+    slot = form.get("slot", "1")
+    name = form.get("name", "").strip() or (file.filename if file else "video")
+
+    if not file:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="No file provided")
+
+    content = await file.read()
+    key = f"slot{slot}/{file.filename}"
+    logger.info(f"R2 upload: slot={slot}, key={key}, size={len(content)}")
+
+    try:
+        import boto3
+        from botocore.config import Config
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
+            aws_access_key_id=os.environ.get("CF_R2_ACCESS_KEY_ID", ""),
+            aws_secret_access_key=os.environ.get("CF_R2_SECRET_ACCESS_KEY", ""),
+            config=Config(signature_version="s3v4"),
+            region_name="auto",
+        )
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body=content,
+            ContentType=file.content_type or "video/mp4",
+            Metadata={"name": name},
+        )
+        logger.info(f"R2 upload success: {key}")
+        return {"ok": True, "key": key}
+    except Exception as e:
+        logger.error(f"R2 upload error: {e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class VideoDeleteRequest(BaseModel):
+    key: str
+
+
+@app.post("/video/delete")
+async def video_delete(req: VideoDeleteRequest, request: Request):
+    """Delete object from R2 bucket."""
+    import os
+    if not is_authenticated(request):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    account_id = os.environ.get("CF_ACCOUNT_ID", "")
+    bucket_name = os.environ.get("CF_R2_BUCKET", "")
+    if not all([account_id, bucket_name,
+                os.environ.get("CF_R2_ACCESS_KEY_ID"),
+                os.environ.get("CF_R2_SECRET_ACCESS_KEY")]):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail="R2 not configured")
+
+    try:
+        import boto3
+        from botocore.config import Config
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
+            aws_access_key_id=os.environ.get("CF_R2_ACCESS_KEY_ID", ""),
+            aws_secret_access_key=os.environ.get("CF_R2_SECRET_ACCESS_KEY", ""),
+            config=Config(signature_version="s3v4"),
+            region_name="auto",
+        )
+        s3.delete_object(Bucket=bucket_name, Key=req.key)
+        logger.info(f"R2 delete: {req.key}")
+        return {"ok": True}
+    except Exception as e:
+        logger.error(f"R2 delete error: {e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/grok/", response_class=HTMLResponse)
 async def grok_page(request: Request):
     return templates.TemplateResponse("grok.html", {"request": request})
