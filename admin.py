@@ -266,16 +266,32 @@ async def video_storage_info(request: Request):
             region_name="auto",
         )
         resp = s3.list_objects_v2(Bucket=bucket_name, Prefix="video/")
+        # Build meta map: slot -> name from meta.json files
+        meta_map = {}
+        for obj in resp.get("Contents", []):
+            if obj["Key"].endswith("/meta.json"):
+                try:
+                    body = s3.get_object(Bucket=bucket_name, Key=obj["Key"])["Body"].read()
+                    import json
+                    meta = json.loads(body.decode("utf-8"))
+                    m = obj["Key"].split("/")
+                    slot_part = next((p for p in m if p.startswith("slot")), None)
+                    if slot_part:
+                        meta_map[slot_part] = meta.get("name", "")
+                except Exception:
+                    pass
+
         objects = []
         total_bytes = 0
         for obj in resp.get("Contents", []):
             key = obj["Key"]
+            if key.endswith("/meta.json"):
+                continue  # skip sidecar files
             size = obj["Size"]
             total_bytes += size
-            # Extract slot number and filename from key: video/slot{n}/filename
             parts = key.split("/")
-            name = parts[-1] if len(parts) > 1 else key
-            # Generate presigned URL valid 1 hour
+            slot_part = next((p for p in parts if p.startswith("slot")), None)
+            name = meta_map.get(slot_part, parts[-1]) if slot_part else parts[-1]
             url = s3.generate_presigned_url(
                 "get_object",
                 Params={"Bucket": bucket_name, "Key": key},
@@ -323,7 +339,7 @@ async def video_upload(request: Request):
     logger.info(f"R2 upload: slot={slot}, key={key}, size={len(content)}")
 
     try:
-        import boto3
+        import boto3, json
         from botocore.config import Config
         endpoint = os.environ.get("CF_R2_ENDPOINT", f"https://{account_id}.r2.cloudflarestorage.com")
         s3 = boto3.client(
@@ -334,12 +350,20 @@ async def video_upload(request: Request):
             config=Config(signature_version="s3v4"),
             region_name="auto",
         )
+        # Upload video file (no metadata — S3 metadata is ASCII-only)
         s3.put_object(
             Bucket=bucket_name,
             Key=key,
             Body=content,
             ContentType=file.content_type or "video/mp4",
-            Metadata={"name": name},
+        )
+        # Store name in a sidecar JSON file: video/slot{n}/meta.json
+        meta_key = f"video/slot{slot}/meta.json"
+        s3.put_object(
+            Bucket=bucket_name,
+            Key=meta_key,
+            Body=json.dumps({"name": name, "file_key": key}, ensure_ascii=False).encode("utf-8"),
+            ContentType="application/json",
         )
         logger.info(f"R2 upload success: {key}")
         return {"ok": True, "key": key}
@@ -382,6 +406,15 @@ async def video_delete(req: VideoDeleteRequest, request: Request):
             region_name="auto",
         )
         s3.delete_object(Bucket=bucket_name, Key=req.key)
+        # Also delete sidecar meta.json
+        parts = req.key.split("/")
+        slot_part = next((p for p in parts if p.startswith("slot")), None)
+        if slot_part:
+            meta_key = "/".join(parts[:-1]) + "/meta.json"
+            try:
+                s3.delete_object(Bucket=bucket_name, Key=meta_key)
+            except Exception:
+                pass
         logger.info(f"R2 delete: {req.key}")
         return {"ok": True}
     except Exception as e:
