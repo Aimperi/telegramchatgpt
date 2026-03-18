@@ -246,6 +246,14 @@
                 <label>Название видео</label>
                 <input type="text" id="editName" placeholder="Введите название...">
             </div>
+            <div class="field" id="videoUrlWrap" style="display:none;">
+                <label>Ссылка на видео</label>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input type="text" id="videoUrl" readonly style="flex:1; color:#818cf8; font-size:12px; cursor:text;">
+                    <button onclick="copyVideoUrl()" style="background:#12122a; border:1px solid #2a2a4a; color:#9ca3af; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:12px; white-space:nowrap; font-family:inherit; transition:all 0.2s;" onmouseover="this.style.borderColor='#6366f1';this.style.color='#fff'" onmouseout="this.style.borderColor='#2a2a4a';this.style.color='#9ca3af'">📋 Копировать</button>
+                </div>
+                <div id="copyStatus" style="font-size:12px; color:#4ade80; margin-top:4px; min-height:16px;"></div>
+            </div>
             <div class="field">
                 <label>Загрузить видео в R2</label>
                 <div class="upload-zone" id="uploadZone">
@@ -359,6 +367,18 @@
         document.getElementById('editStatus').textContent = '';
         document.getElementById('editStatus').className = 'modal-status';
         document.getElementById('fileInput').value = '';
+
+        // Show/hide video URL field
+        const urlWrap = document.getElementById('videoUrlWrap');
+        const urlInput = document.getElementById('videoUrl');
+        if (v && v.url) {
+            urlInput.value = v.url;
+            urlWrap.style.display = 'block';
+        } else {
+            urlInput.value = '';
+            urlWrap.style.display = 'none';
+        }
+
         document.getElementById('editModal').classList.add('open');
     }
 
@@ -475,6 +495,16 @@
 
     function escHtml(s) {
         return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function copyVideoUrl() {
+        const url = document.getElementById('videoUrl').value;
+        if (!url) return;
+        navigator.clipboard.writeText(url).then(() => {
+            const el = document.getElementById('copyStatus');
+            el.textContent = '✓ Скопировано!';
+            setTimeout(() => { el.textContent = ''; }, 2000);
+        });
     }
 
     // Close modal on overlay click
