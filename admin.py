@@ -264,15 +264,16 @@ async def video_storage_info(request: Request):
             config=Config(signature_version="s3v4"),
             region_name="auto",
         )
-        resp = s3.list_objects_v2(Bucket=bucket_name)
+        resp = s3.list_objects_v2(Bucket=bucket_name, Prefix="video/")
         objects = []
         total_bytes = 0
         for obj in resp.get("Contents", []):
             key = obj["Key"]
             size = obj["Size"]
             total_bytes += size
-            # Extract name from metadata key pattern slot{n}/filename
-            name = key.split("/", 1)[-1] if "/" in key else key
+            # Extract slot number and filename from key: video/slot{n}/filename
+            parts = key.split("/")
+            name = parts[-1] if len(parts) > 1 else key
             # Generate presigned URL valid 1 hour
             url = s3.generate_presigned_url(
                 "get_object",
@@ -317,7 +318,7 @@ async def video_upload(request: Request):
         raise HTTPException(status_code=400, detail="No file provided")
 
     content = await file.read()
-    key = f"slot{slot}/{file.filename}"
+    key = f"video/slot{slot}/{file.filename}"
     logger.info(f"R2 upload: slot={slot}, key={key}, size={len(content)}")
 
     try:

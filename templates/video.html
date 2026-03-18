@@ -308,7 +308,7 @@
             // Build videos map from R2 objects
             videos = {};
             (data.objects || []).forEach(obj => {
-                const m = obj.key.match(/^slot(\d+)\//);
+                const m = obj.key.match(/^video\/slot(\d+)\//);
                 if (m) {
                     const slot = parseInt(m[1]);
                     videos[slot] = { name: obj.name || obj.key, key: obj.key, size: obj.size, url: obj.url };
