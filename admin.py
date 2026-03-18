@@ -246,10 +246,11 @@ async def video_storage_info(request: Request):
 
     account_id = os.environ.get("CF_ACCOUNT_ID", "")
     bucket_name = os.environ.get("CF_R2_BUCKET", "")
-    api_token = os.environ.get("CF_R2_TOKEN", "")
 
-    if not all([account_id, bucket_name, api_token]):
-        return {"error": "R2 not configured. Set CF_ACCOUNT_ID, CF_R2_BUCKET, CF_R2_TOKEN in Railway."}
+    if not all([account_id, bucket_name,
+                os.environ.get("CF_R2_ACCESS_KEY_ID"),
+                os.environ.get("CF_R2_SECRET_ACCESS_KEY")]):
+        return {"error": "R2 not configured. Set CF_ACCOUNT_ID, CF_R2_BUCKET, CF_R2_ACCESS_KEY_ID, CF_R2_SECRET_ACCESS_KEY in Railway."}
 
     try:
         # List objects via Cloudflare R2 S3-compatible API
