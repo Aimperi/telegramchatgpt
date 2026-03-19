@@ -1278,6 +1278,9 @@ async def lava_products(request: Request):
         return r.json()
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.post("/payment/lava/create")
 async def lava_payment_create(req: LavaPaymentRequest):
     """Create lava.top invoice for Visa/Mastercard payment."""
     recipe = RECIPE_PRICES.get(req.recipe_id)
