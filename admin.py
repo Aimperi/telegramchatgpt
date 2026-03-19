@@ -1155,8 +1155,9 @@ async def tts_elevenlabs(req: TTSRequest):
 
 # ── CryptoCloud Payment ──────────────────────────────────────────────────────
 
-CRYPTOCLOUD_API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1dWlkIjoiT1RNME1EUT0iLCJ0eXBlIjoicHJvamVjdCIsInYiOiI4MzU2ZGRjMjJlOGRjY2U5ZTg4MjUyZDlmZDIzMDU0YzA0MWUwMWU1ZGJiMzk2ZmQyZGI2NTkzYjUxOTZkMTBmIiwiZXhwIjo4ODE3Mzg0Njg3N30.pmcmnnPSKjMjPeBW_p-fBabSyHujs9si95z_jT7zy54"
-CRYPTOCLOUD_SHOP_ID = "TXJqtp0wuefUs2aO"
+import os as _os
+CRYPTOCLOUD_API_KEY = _os.environ.get("CRYPTOCLOUD_API_KEY", "")
+CRYPTOCLOUD_SHOP_ID = _os.environ.get("CRYPTOCLOUD_SHOP_ID", "")
 
 RECIPE_PRICES = {
     "chicken_rice": {"name": "Курица с рисом", "amount": 5, "currency": "USD"},
