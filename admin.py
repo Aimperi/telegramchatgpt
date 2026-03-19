@@ -1314,7 +1314,15 @@ async def lava_payment_create(req: LavaPaymentRequest):
 
 @app.post("/payment/lava/webhook")
 async def lava_webhook(request: Request):
-    """Handle lava.top payment webhook."""
+    """Handle lava.top payment webhook (authenticated via X-Api-Key header)."""
+    webhook_secret = _os.environ.get("LAVA_WEBHOOK_SECRET", "")
+    if webhook_secret:
+        incoming_key = request.headers.get("X-Api-Key", "")
+        if incoming_key != webhook_secret:
+            from fastapi import HTTPException
+            logger.warning(f"Lava.top webhook: invalid X-Api-Key")
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
     try:
         data = await request.json()
     except Exception:
@@ -1331,9 +1339,5 @@ async def lava_webhook(request: Request):
     if event_type == "payment.success":
         logger.info(f"Lava.top payment confirmed: contract={contract_id}")
         # TODO: grant access / send Telegram notification
-
-    return {"message": "ok"}
-        logger.info(f"Payment confirmed for recipe: {recipe.get('name', order_id)}")
-        # TODO: grant access in DB / send Telegram message to user
 
     return {"message": "ok"}
