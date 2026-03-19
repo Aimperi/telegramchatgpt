@@ -1251,7 +1251,7 @@ async def payment_postback(request: Request):
 
 LAVA_API_KEY = _os.environ.get("LAVA_API_KEY", "")
 # Single offer ID from lava.top — used for all recipes
-LAVA_OFFER_ID = _os.environ.get("LAVA_OFFER_ID", "981cebc8-6e75-4abc-942e-33540b4375b1")
+LAVA_OFFER_ID = _os.environ.get("LAVA_OFFER_ID", "ad472664-7dcc-44ca-9ecf-e20869e63220")
 
 
 class LavaPaymentRequest(BaseModel):
