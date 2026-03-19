@@ -1244,9 +1244,10 @@ async def payment_postback(request: Request):
 
     if status == "success":
         recipe = RECIPE_PRICES.get(order_id, {})
+        logger.info(f"CryptoCloud payment confirmed for recipe: {recipe.get('name', order_id)}")
+        # TODO: grant access in DB / send Telegram message to user
 
-
-# ── Lava.top Card Payment ─────────────────────────────────────────────────────
+    return {"message": "ok"}
 
 LAVA_API_KEY = _os.environ.get("LAVA_API_KEY", "")
 # Single offer ID from lava.top — used for all recipes
