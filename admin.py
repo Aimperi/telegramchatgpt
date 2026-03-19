@@ -1168,6 +1168,7 @@ RECIPE_PRICES = {
 
 class PaymentCreateRequest(BaseModel):
     recipe_id: str
+    method: str = "crypto"  # "crypto" or "card"
 
 
 @app.post("/payment/create")
@@ -1187,7 +1188,11 @@ async def payment_create(req: PaymentCreateRequest):
             "time_to_pay": {"hours": 1, "minutes": 0}
         }
     }
-    logger.info(f"CryptoCloud create invoice: {payload}")
+    # For card payments, request fiat payment method
+    if req.method == "card":
+        payload["add_fields"]["payment_method"] = "fiat"
+
+    logger.info(f"CryptoCloud create invoice: method={req.method}, {payload}")
     try:
         async with httpx.AsyncClient(timeout=15) as client:
             r = await client.post(

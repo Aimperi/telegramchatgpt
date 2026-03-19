@@ -156,6 +156,14 @@
             transition: background 0.2s, transform 0.15s; font-family: 'Inter', sans-serif;
         }
         .btn-buy:hover { background: #4f46e5; transform: translateY(-1px); }
+        .btn-buy-card {
+            display: block; width: 100%; margin-top: 8px;
+            background: transparent; color: var(--text); border: 1px solid var(--border);
+            padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 600;
+            cursor: pointer; text-align: center; text-decoration: none;
+            transition: border-color 0.2s, background 0.2s, transform 0.15s; font-family: 'Inter', sans-serif;
+        }
+        .btn-buy-card:hover { border-color: var(--accent); background: rgba(99,102,241,0.08); transform: translateY(-1px); }
 
         /* TECH */
         .tech-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
@@ -426,7 +434,10 @@
                     <span class="ingredient-tag">лук</span>
                 </div>
                 <div class="recipe-time">⏱ 30 минут</div>
+                <div style="font-size:11px; color:var(--muted); margin-top:14px; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Оплатить Crypto</div>
                 <a href="#" class="btn-buy" onclick="buyRecipe(event,'chicken_rice')">🛒 Купить рецепт — $5</a>
+                <div style="font-size:11px; color:var(--muted); margin-top:10px; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Оплатить Visa/Mastercard</div>
+                <a href="#" class="btn-buy-card" onclick="buyRecipeCard(event,'chicken_rice')">💳 Купить рецепт — $5</a>
             </div>
         </div>
         <div class="recipe-card fade-in">
@@ -440,7 +451,10 @@
                     <span class="ingredient-tag">помидоры</span>
                 </div>
                 <div class="recipe-time">⏱ 40 минут</div>
+                <div style="font-size:11px; color:var(--muted); margin-top:14px; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Оплатить Crypto</div>
                 <a href="#" class="btn-buy" onclick="buyRecipe(event,'veggie_stew')">🛒 Купить рецепт — $10</a>
+                <div style="font-size:11px; color:var(--muted); margin-top:10px; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Оплатить Visa/Mastercard</div>
+                <a href="#" class="btn-buy-card" onclick="buyRecipeCard(event,'veggie_stew')">💳 Купить рецепт — $10</a>
             </div>
         </div>
         <div class="recipe-card fade-in">
@@ -454,7 +468,10 @@
                     <span class="ingredient-tag">сыр</span>
                 </div>
                 <div class="recipe-time">⏱ 15 минут</div>
+                <div style="font-size:11px; color:var(--muted); margin-top:14px; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Оплатить Crypto</div>
                 <a href="#" class="btn-buy" onclick="buyRecipe(event,'omelette')">🛒 Купить рецепт — $15</a>
+                <div style="font-size:11px; color:var(--muted); margin-top:10px; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Оплатить Visa/Mastercard</div>
+                <a href="#" class="btn-buy-card" onclick="buyRecipeCard(event,'omelette')">💳 Купить рецепт — $15</a>
             </div>
         </div>
     </div>
@@ -609,6 +626,30 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ recipe_id: recipeId })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Ошибка');
+            window.location.href = data.link;
+        } catch (err) {
+            alert('Ошибка создания платежа: ' + err.message);
+            btn.textContent = origText;
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+        }
+    }
+
+    async function buyRecipeCard(e, recipeId) {
+        e.preventDefault();
+        const btn = e.currentTarget;
+        const origText = btn.textContent;
+        btn.textContent = '⏳ Создаю счёт...';
+        btn.style.opacity = '0.7';
+        btn.style.pointerEvents = 'none';
+        try {
+            const res = await fetch('/payment/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ recipe_id: recipeId, method: 'card' })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.detail || 'Ошибка');
