@@ -1244,6 +1244,95 @@ async def payment_postback(request: Request):
 
     if status == "success":
         recipe = RECIPE_PRICES.get(order_id, {})
+
+
+# ── Lava.top Card Payment ─────────────────────────────────────────────────────
+
+LAVA_API_KEY = _os.environ.get("LAVA_API_KEY", "")
+# Single offer ID from lava.top — used for all recipes
+LAVA_OFFER_ID = _os.environ.get("LAVA_OFFER_ID", "981cebc8-6e75-4abc-942e-33540b4375b1")
+
+
+class LavaPaymentRequest(BaseModel):
+    recipe_id: str
+    email: str
+
+
+@app.post("/payment/lava/create")
+async def lava_payment_create(req: LavaPaymentRequest):
+    """Create lava.top invoice for Visa/Mastercard payment."""
+    recipe = RECIPE_PRICES.get(req.recipe_id)
+    if not recipe:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Unknown recipe_id")
+
+    email = req.email.strip()
+    if not email or "@" not in email:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Valid email is required")
+
+    api_key = LAVA_API_KEY
+    if not api_key:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail="LAVA_API_KEY not configured")
+
+    payload = {
+        "email": email,
+        "offerId": LAVA_OFFER_ID,
+        "currency": "USD",
+        "paymentProvider": "UNLIMIT",
+        "paymentMethod": "CARD",
+        "periodicity": "ONE_TIME",
+        "buyerLanguage": "RU",
+    }
+    logger.info(f"Lava.top create invoice: recipe={req.recipe_id}, email={email}")
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(
+                "https://gate.lava.top/api/v3/invoice",
+                json=payload,
+                headers={
+                    "X-Api-Key": api_key,
+                    "Content-Type": "application/json",
+                }
+            )
+        logger.info(f"Lava.top response: {r.status_code} {r.text[:300]}")
+        if r.status_code not in (200, 201):
+            from fastapi import HTTPException
+            raise HTTPException(status_code=r.status_code, detail=r.text)
+        data = r.json()
+        payment_url = data.get("paymentUrl")
+        if not payment_url:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=500, detail="No paymentUrl in response")
+        return {"link": payment_url, "recipe": recipe["name"], "amount": recipe["amount"]}
+    except Exception as e:
+        logger.error(f"Lava.top error: {e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/payment/lava/webhook")
+async def lava_webhook(request: Request):
+    """Handle lava.top payment webhook."""
+    try:
+        data = await request.json()
+    except Exception:
+        return {"message": "ok"}
+
+    event_type = data.get("eventType")
+    status = data.get("status")
+    contract_id = data.get("contractId")
+    buyer = data.get("buyer", {})
+    product = data.get("product", {})
+
+    logger.info(f"Lava.top webhook: event={event_type}, status={status}, contract={contract_id}, buyer={buyer.get('email')}, product={product.get('title')}")
+
+    if event_type == "payment.success":
+        logger.info(f"Lava.top payment confirmed: contract={contract_id}")
+        # TODO: grant access / send Telegram notification
+
+    return {"message": "ok"}
         logger.info(f"Payment confirmed for recipe: {recipe.get('name', order_id)}")
         # TODO: grant access in DB / send Telegram message to user
 
