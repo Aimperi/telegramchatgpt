@@ -148,6 +148,14 @@
             color: var(--accent2); padding: 3px 10px; border-radius: 20px; font-size: 12px;
         }
         .recipe-time { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+        .btn-buy {
+            display: block; width: 100%; margin-top: 14px;
+            background: var(--accent); color: #fff; border: none;
+            padding: 10px; border-radius: 8px; font-size: 14px; font-weight: 600;
+            cursor: pointer; text-align: center; text-decoration: none;
+            transition: background 0.2s, transform 0.15s; font-family: 'Inter', sans-serif;
+        }
+        .btn-buy:hover { background: #4f46e5; transform: translateY(-1px); }
 
         /* TECH */
         .tech-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
@@ -418,6 +426,7 @@
                     <span class="ingredient-tag">лук</span>
                 </div>
                 <div class="recipe-time">⏱ 30 минут</div>
+                <a href="https://t.me/receptchatgpt_bot" class="btn-buy" target="_blank">🛒 Купить рецепт</a>
             </div>
         </div>
         <div class="recipe-card fade-in">
@@ -431,6 +440,7 @@
                     <span class="ingredient-tag">помидоры</span>
                 </div>
                 <div class="recipe-time">⏱ 40 минут</div>
+                <a href="https://t.me/receptchatgpt_bot" class="btn-buy" target="_blank">🛒 Купить рецепт</a>
             </div>
         </div>
         <div class="recipe-card fade-in">
@@ -444,6 +454,7 @@
                     <span class="ingredient-tag">сыр</span>
                 </div>
                 <div class="recipe-time">⏱ 15 минут</div>
+                <a href="https://t.me/receptchatgpt_bot" class="btn-buy" target="_blank">🛒 Купить рецепт</a>
             </div>
         </div>
     </div>
