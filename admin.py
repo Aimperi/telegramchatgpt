@@ -1151,3 +1151,94 @@ async def tts_elevenlabs(req: TTSRequest):
         logger.error(f"ElevenLabs TTS error: {e}")
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── CryptoCloud Payment ──────────────────────────────────────────────────────
+
+CRYPTOCLOUD_API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1dWlkIjoiT1RNME1EUT0iLCJ0eXBlIjoicHJvamVjdCIsInYiOiI4MzU2ZGRjMjJlOGRjY2U5ZTg4MjUyZDlmZDIzMDU0YzA0MWUwMWU1ZGJiMzk2ZmQyZGI2NTkzYjUxOTZkMTBmIiwiZXhwIjo4ODE3Mzg0Njg3N30.pmcmnnPSKjMjPeBW_p-fBabSyHujs9si95z_jT7zy54"
+CRYPTOCLOUD_SHOP_ID = "TXJqtp0wuefUs2aO"
+
+RECIPE_PRICES = {
+    "chicken_rice": {"name": "Курица с рисом", "amount": 5, "currency": "USD"},
+    "veggie_stew":  {"name": "Овощное рагу",   "amount": 10, "currency": "USD"},
+    "omelette":     {"name": "Омлет с овощами", "amount": 15, "currency": "USD"},
+}
+
+
+class PaymentCreateRequest(BaseModel):
+    recipe_id: str
+
+
+@app.post("/payment/create")
+async def payment_create(req: PaymentCreateRequest):
+    """Create CryptoCloud invoice and return payment link."""
+    recipe = RECIPE_PRICES.get(req.recipe_id)
+    if not recipe:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Unknown recipe_id")
+
+    payload = {
+        "amount": recipe["amount"],
+        "shop_id": CRYPTOCLOUD_SHOP_ID,
+        "currency": recipe["currency"],
+        "order_id": req.recipe_id,
+        "add_fields": {
+            "time_to_pay": {"hours": 1, "minutes": 0}
+        }
+    }
+    logger.info(f"CryptoCloud create invoice: {payload}")
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(
+                "https://api.cryptocloud.plus/v2/invoice/create",
+                json=payload,
+                headers={
+                    "Authorization": f"Token {CRYPTOCLOUD_API_KEY}",
+                    "Content-Type": "application/json",
+                }
+            )
+        logger.info(f"CryptoCloud response: {r.status_code} {r.text[:300]}")
+        if r.status_code != 200:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=r.status_code, detail=r.text)
+        data = r.json()
+        link = data["result"]["link"]
+        return {"link": link, "recipe": recipe["name"], "amount": recipe["amount"]}
+    except Exception as e:
+        logger.error(f"CryptoCloud error: {e}")
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/payment/success", response_class=HTMLResponse)
+async def payment_success(request: Request):
+    return templates.TemplateResponse("payment_success.html", {"request": request})
+
+
+@app.get("/payment/failed", response_class=HTMLResponse)
+async def payment_failed(request: Request):
+    return templates.TemplateResponse("payment_failed.html", {"request": request})
+
+
+@app.post("/payment/postback")
+async def payment_postback(request: Request):
+    """Handle CryptoCloud payment notification."""
+    try:
+        data = await request.json()
+    except Exception:
+        data = dict(await request.form())
+
+    status = data.get("status")
+    invoice_id = data.get("invoice_id")
+    order_id = data.get("order_id")
+    currency = data.get("currency")
+    amount_crypto = data.get("amount_crypto")
+
+    logger.info(f"CryptoCloud postback: status={status}, invoice_id={invoice_id}, order_id={order_id}, currency={currency}, amount={amount_crypto}")
+
+    if status == "success":
+        recipe = RECIPE_PRICES.get(order_id, {})
+        logger.info(f"Payment confirmed for recipe: {recipe.get('name', order_id)}")
+        # TODO: grant access in DB / send Telegram message to user
+
+    return {"message": "ok"}

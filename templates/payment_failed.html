@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оплата не прошла — RecipeBotFather</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0a0a14; color: #f1f5f9; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .card { background: #12121f; border: 1px solid #2a2a4a; border-radius: 24px; padding: 56px 48px; text-align: center; max-width: 480px; width: 90%; }
+        .icon { font-size: 72px; margin-bottom: 24px; }
+        h1 { font-size: 28px; font-weight: 800; margin-bottom: 12px; color: #f87171; }
+        p { font-size: 16px; color: #94a3b8; line-height: 1.6; margin-bottom: 32px; }
+        .btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: #6366f1; color: #fff; padding: 14px 28px;
+            border-radius: 10px; font-size: 16px; font-weight: 600;
+            text-decoration: none; transition: background 0.2s;
+        }
+        .btn:hover { background: #4f46e5; }
+        .btn.secondary { background: transparent; border: 1px solid #2a2a4a; color: #94a3b8; }
+        .btn.secondary:hover { border-color: #6366f1; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">❌</div>
+        <h1>Оплата не прошла</h1>
+        <p>Что-то пошло не так. Попробуй ещё раз или свяжись с поддержкой.</p>
+        <div class="btns">
+            <a href="/#recipes" class="btn">↩ Попробовать снова</a>
+            <a href="https://t.me/receptchatgpt_bot" class="btn secondary" target="_blank">Поддержка</a>
+        </div>
+    </div>
+</body>
+</html>
