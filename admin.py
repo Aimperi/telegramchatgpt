@@ -1281,7 +1281,7 @@ async def lava_payment_create(req: LavaPaymentRequest):
         "email": email,
         "offerId": LAVA_OFFER_ID,
         "currency": "USD",
-        "paymentProvider": "UNLIMIT",
+        "paymentProvider": "UNLIMINT",
         "paymentMethod": "CARD",
         "periodicity": "ONE_TIME",
         "buyerLanguage": "RU",
