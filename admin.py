@@ -1259,7 +1259,25 @@ class LavaPaymentRequest(BaseModel):
     email: str
 
 
-@app.post("/payment/lava/create")
+@app.get("/payment/lava/products")
+async def lava_products(request: Request):
+    """Debug: list all lava.top products and their offer IDs."""
+    if not is_authenticated(request):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    api_key = LAVA_API_KEY
+    if not api_key:
+        return {"error": "LAVA_API_KEY not configured"}
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.get(
+                "https://gate.lava.top/api/v2/products",
+                headers={"X-Api-Key": api_key, "Content-Type": "application/json"}
+            )
+        logger.info(f"Lava.top products: {r.status_code} {r.text[:1000]}")
+        return r.json()
+    except Exception as e:
+        return {"error": str(e)}
 async def lava_payment_create(req: LavaPaymentRequest):
     """Create lava.top invoice for Visa/Mastercard payment."""
     recipe = RECIPE_PRICES.get(req.recipe_id)
