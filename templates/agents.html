@@ -9,76 +9,100 @@
 :root{--bg:#0a0a14;--bg2:#12121f;--bg3:#1a1a2e;--border:#2a2a4a;--accent:#6366f1;--accent2:#818cf8;--text:#f1f5f9;--muted:#94a3b8;--green:#22c55e;}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
-nav{background:rgba(10,10,20,0.97);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0;z-index:10;}
-.nav-logo{font-size:15px;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none;color:var(--text);}
+nav{background:rgba(10,10,20,0.97);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.nav-logo{font-size:14px;font-weight:700;text-decoration:none;color:var(--text);}
 .nav-sep{color:var(--border);}
-.nav-title{font-size:14px;font-weight:600;color:var(--accent2);}
-/* AGENT TABS */
-.agent-tabs{display:flex;gap:6px;padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;}
-.agent-tab{display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s;font-family:'Inter',sans-serif;}
-.agent-tab:hover{border-color:var(--accent);color:var(--text);}
-.agent-tab.active{color:#fff;border-color:transparent;}
-.agent-tab[data-agent="game_designer"].active{background:#854d0e;}
-.agent-tab[data-agent="rapid_prototyper"].active{background:#166534;}
-.agent-tab[data-agent="whimsy_injector"].active{background:#831843;}
-.agent-tab[data-agent="reality_checker"].active{background:#7f1d1d;}
-.agent-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-/* MAIN LAYOUT */
-.main{display:flex;flex:1;overflow:hidden;}
-/* CHAT PANEL */
-.chat-panel{width:420px;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid var(--border);}
-.chat-header{padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;}
-.chat-agent-emoji{font-size:22px;}
+.nav-title{font-size:13px;font-weight:600;color:var(--accent2);}
+.screen-tabs{display:flex;gap:4px;margin-left:auto;}
+.screen-tab{padding:5px 14px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.screen-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+.screens{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.screen{display:none;flex:1;overflow:hidden;}
+.screen.active{display:flex;}
+</style>
+<style>
+/* SCREEN 1 — AGENCY CHAT */
+#screen1{flex-direction:row;}
+.sidebar{width:220px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-header{padding:12px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+.agent-list{flex:1;overflow-y:auto;padding:8px;}
+.agent-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;cursor:pointer;transition:background .15s;border:1px solid transparent;}
+.agent-item:hover{background:var(--bg3);}
+.agent-item.active{background:var(--bg3);border-color:var(--border);}
+.agent-item.selected-for-broadcast{border-color:var(--accent);background:rgba(99,102,241,0.1);}
+.agent-emoji{font-size:16px;flex-shrink:0;}
+.agent-info{flex:1;min-width:0;}
+.agent-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.agent-div{font-size:10px;color:var(--muted);}
+.agent-check{width:14px;height:14px;border-radius:3px;border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;}
+.agent-item.selected-for-broadcast .agent-check{background:var(--accent);border-color:var(--accent);color:#fff;}
+.broadcast-bar{padding:10px 12px;border-top:1px solid var(--border);background:var(--bg2);}
+.broadcast-btn{width:100%;background:linear-gradient(135deg,#6366f1,#818cf8);color:#fff;border:none;padding:8px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:opacity .2s;}
+.broadcast-btn:hover{opacity:.9;}
+.broadcast-btn:disabled{opacity:.4;cursor:not-allowed;}
+.chat-area{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.chat-header{padding:10px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.chat-agent-emoji{font-size:20px;}
 .chat-agent-name{font-size:14px;font-weight:700;}
-.chat-agent-vibe{font-size:11px;color:var(--muted);margin-top:1px;}
-.chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
-.msg{display:flex;gap:8px;max-width:95%;}
+.chat-agent-vibe{font-size:11px;color:var(--muted);}
+.chat-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;}
+.msg{display:flex;gap:8px;max-width:90%;}
 .msg.user{align-self:flex-end;flex-direction:row-reverse;}
 .msg.assistant{align-self:flex-start;}
-.msg-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:2px;}
+.msg-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px;}
 .msg.user .msg-avatar{background:var(--accent);}
 .msg.assistant .msg-avatar{background:var(--bg3);border:1px solid var(--border);}
-.msg-bubble{padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.6;word-break:break-word;}
-.msg.user .msg-bubble{background:var(--accent);color:#fff;border-radius:14px 14px 4px 14px;}
-.msg.assistant .msg-bubble{background:var(--bg3);border:1px solid var(--border);border-radius:14px 14px 14px 4px;}
-.msg-bubble pre{background:rgba(0,0,0,0.4);border-radius:6px;padding:8px;margin-top:6px;overflow-x:auto;font-size:11px;max-height:200px;}
+.msg-bubble{padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.6;word-break:break-word;}
+.msg.user .msg-bubble{background:var(--accent);color:#fff;border-radius:12px 12px 4px 12px;}
+.msg.assistant .msg-bubble{background:var(--bg3);border:1px solid var(--border);border-radius:12px 12px 12px 4px;}
+.msg-bubble pre{background:rgba(0,0,0,0.4);border-radius:6px;padding:8px;margin-top:6px;overflow-x:auto;font-size:11px;}
 .msg-bubble code{font-family:monospace;background:rgba(0,0,0,0.25);padding:1px 4px;border-radius:3px;font-size:11px;}
-.typing-ind{display:flex;gap:3px;padding:10px 13px;background:var(--bg3);border:1px solid var(--border);border-radius:14px;width:fit-content;}
+.msg-agent-label{font-size:10px;color:var(--muted);margin-bottom:3px;font-weight:600;}
+.typing-ind{display:flex;gap:3px;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;width:fit-content;}
 .typing-ind span{width:5px;height:5px;background:var(--muted);border-radius:50%;animation:bounce 1.2s infinite;}
 .typing-ind span:nth-child(2){animation-delay:.2s;}
 .typing-ind span:nth-child(3){animation-delay:.4s;}
 @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
-/* ACTION BUTTONS */
-.action-bar{padding:10px 14px;background:var(--bg2);border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:6px;flex-shrink:0;}
-.action-btn{padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:5px;}
-.action-btn:hover{border-color:var(--accent);color:var(--text);}
-.action-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
-.action-btn.primary:hover{background:#4f46e5;}
-.action-btn:disabled{opacity:.4;cursor:not-allowed;}
-/* INPUT */
-.chat-input-area{padding:12px 14px;border-top:1px solid var(--border);background:var(--bg2);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;}
-.chat-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 13px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;resize:none;min-height:40px;max-height:100px;outline:none;transition:border-color .2s;line-height:1.5;}
+.chat-input-area{padding:10px 14px;border-top:1px solid var(--border);background:var(--bg2);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;}
+.chat-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;resize:none;min-height:38px;max-height:90px;outline:none;transition:border-color .2s;line-height:1.5;}
 .chat-input:focus{border-color:var(--accent);}
 .chat-input::placeholder{color:var(--muted);}
-.send-btn{background:var(--accent);color:#fff;border:none;width:38px;height:38px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:background .2s;flex-shrink:0;}
+.send-btn{background:var(--accent);color:#fff;border:none;width:36px;height:36px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:background .2s;flex-shrink:0;}
 .send-btn:hover{background:#4f46e5;}
 .send-btn:disabled{opacity:.4;cursor:not-allowed;}
-/* PREVIEW PANEL */
-.preview-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-.preview-header{padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+/* BROADCAST RESULTS */
+.broadcast-results{padding:14px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1;}
+.broadcast-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:12px 14px;}
+.broadcast-card-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.broadcast-card-name{font-size:13px;font-weight:700;}
+.broadcast-card-body{font-size:13px;line-height:1.6;color:var(--text);}
+.broadcast-card.recommended{border-color:var(--green);}
+.recommended-badge{background:var(--green);color:#000;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:auto;}
+/* SCREEN 2 — DEV STUDIO */
+#screen2{flex-direction:column;}
+.dev-layout{display:flex;flex:1;overflow:hidden;}
+.code-panel{width:50%;flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid var(--border);}
+.code-header{padding:10px 14px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.code-title{font-size:13px;font-weight:600;}
+.code-actions{display:flex;gap:6px;}
+.code-btn{padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.code-btn:hover{border-color:var(--accent);color:var(--text);}
+.code-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.code-textarea{flex:1;background:#0d1117;border:none;padding:14px;color:#e6edf3;font-family:'Fira Code','Consolas',monospace;font-size:13px;resize:none;outline:none;line-height:1.6;}
+.preview-panel{flex:1;display:flex;flex-direction:column;}
+.preview-header{padding:10px 14px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 .preview-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;}
-.preview-status{font-size:11px;padding:3px 10px;border-radius:10px;background:rgba(99,102,241,0.15);color:var(--accent2);}
-.preview-actions{display:flex;gap:8px;}
-.preview-btn{padding:5px 12px;border-radius:7px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
-.preview-btn:hover{border-color:var(--accent);color:var(--text);}
+.preview-status{font-size:11px;padding:2px 8px;border-radius:8px;background:rgba(99,102,241,0.15);color:var(--accent2);}
 .preview-iframe-wrap{flex:1;position:relative;background:#fff;}
 .preview-iframe{width:100%;height:100%;border:none;}
-.preview-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg3);color:var(--muted);gap:12px;}
-.preview-empty-icon{font-size:48px;opacity:.4;}
-.preview-empty-text{font-size:14px;}
-/* STREAMING indicator */
-.streaming-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--green);animation:pulse 1.5s infinite;}
+.preview-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg3);color:var(--muted);gap:10px;}
+.streaming-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--green);animation:pulse 1.5s infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* AGENT TABS in screen1 */
+.agent-tabs-row{display:flex;gap:4px;padding:8px 14px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;}
+.agent-tab{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:16px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s;font-family:'Inter',sans-serif;}
+.agent-tab:hover{border-color:var(--accent);color:var(--text);}
+.agent-tab.active{color:#fff;background:var(--accent);border-color:var(--accent);}
 </style>
 </head>
 <body>
@@ -86,122 +110,232 @@ nav{background:rgba(10,10,20,0.97);border-bottom:1px solid var(--border);padding
   <a href="/" class="nav-logo">🍳 RecipeBotFather</a>
   <span class="nav-sep">/</span>
   <span class="nav-title">🤖 AI Agency</span>
+  <div class="screen-tabs">
+    <button class="screen-tab active" onclick="switchScreen(1)">💬 Agency Chat</button>
+    <button class="screen-tab" onclick="switchScreen(2)">⚡ Dev Studio</button>
+  </div>
 </nav>
 
-<div class="agent-tabs">
-  <button class="agent-tab active" data-agent="game_designer" onclick="switchAgent('game_designer')">
-    <span class="agent-dot" style="background:#eab308"></span>🎮 Game Designer
-  </button>
-  <button class="agent-tab" data-agent="rapid_prototyper" onclick="switchAgent('rapid_prototyper')">
-    <span class="agent-dot" style="background:#22c55e"></span>⚡ Rapid Prototyper
-  </button>
-  <button class="agent-tab" data-agent="whimsy_injector" onclick="switchAgent('whimsy_injector')">
-    <span class="agent-dot" style="background:#ec4899"></span>✨ Whimsy Injector
-  </button>
-  <button class="agent-tab" data-agent="reality_checker" onclick="switchAgent('reality_checker')">
-    <span class="agent-dot" style="background:#ef4444"></span>🧐 Reality Checker
-  </button>
-</div>
+<div class="screens">
 
-<div class="main">
-  <!-- CHAT -->
-  <div class="chat-panel">
-    <div class="chat-header" id="chatHeader">
-      <span class="chat-agent-emoji" id="agentEmoji">🎮</span>
-      <div>
-        <div class="chat-agent-name" id="agentName">Game Designer</div>
-        <div class="chat-agent-vibe" id="agentVibe">Думает циклами, рычагами и мотивацией игроков</div>
-      </div>
+<!-- SCREEN 1: AGENCY CHAT -->
+<div class="screen active" id="screen1">
+  <!-- Sidebar: agent list -->
+  <div class="sidebar">
+    <div class="sidebar-header">Агенты <span id="selectedCount" style="color:var(--accent2)"></span></div>
+    <div class="agent-list" id="agentList"></div>
+    <div class="broadcast-bar">
+      <button class="broadcast-btn" id="broadcastBtn" onclick="broadcastQuestion()">🌐 Спросить всех выбранных</button>
     </div>
+  </div>
+
+  <!-- Chat area -->
+  <div class="chat-area">
+    <!-- Active agent tabs -->
+    <div class="agent-tabs-row" id="agentTabsRow"></div>
+
+    <!-- Messages -->
     <div class="chat-messages" id="messages"></div>
-    <div class="action-bar" id="actionBar"></div>
+
+    <!-- Input -->
     <div class="chat-input-area">
       <textarea class="chat-input" id="chatInput" placeholder="Напишите сообщение..." rows="1"
         onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
       <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
     </div>
   </div>
+</div>
 
-  <!-- PREVIEW -->
-  <div class="preview-panel">
-    <div class="preview-header">
-      <div class="preview-title">
-        🖥 Live Preview
-        <span class="preview-status" id="previewStatus">Ожидание</span>
+<!-- SCREEN 2: DEV STUDIO -->
+<div class="screen" id="screen2">
+  <div class="dev-layout">
+    <div class="code-panel">
+      <div class="code-header">
+        <span class="code-title">📝 Редактор кода</span>
+        <div class="code-actions">
+          <button class="code-btn" onclick="clearCode()">🗑 Очистить</button>
+          <button class="code-btn primary" onclick="runCode()">▶ Запустить</button>
+        </div>
       </div>
-      <div class="preview-actions">
-        <button class="preview-btn" onclick="copyCode()">📋 Копировать код</button>
-        <button class="preview-btn" onclick="clearPreview()">🗑 Очистить</button>
-        <button class="preview-btn" onclick="openFullscreen()">⛶ Полный экран</button>
-      </div>
+      <textarea class="code-textarea" id="codeEditor" placeholder="Вставьте HTML/CSS/JS код здесь или попросите агента написать код на экране 1..."></textarea>
     </div>
-    <div class="preview-iframe-wrap">
-      <div class="preview-empty" id="previewEmpty">
-        <div class="preview-empty-icon">🎮</div>
-        <div class="preview-empty-text">Здесь появится live preview</div>
-        <div style="font-size:12px;color:var(--muted);max-width:280px;text-align:center">Попросите Rapid Prototyper или Whimsy Injector написать HTML — он появится здесь автоматически</div>
+    <div class="preview-panel">
+      <div class="preview-header">
+        <div class="preview-title">🖥 Live Preview <span class="preview-status" id="previewStatus">Ожидание</span></div>
+        <div class="code-actions">
+          <button class="code-btn" onclick="copyCode()">📋 Копировать</button>
+          <button class="code-btn" onclick="openFullscreen()">⛶ Полный экран</button>
+        </div>
       </div>
-      <iframe class="preview-iframe" id="previewFrame" style="display:none" sandbox="allow-scripts allow-same-origin"></iframe>
+      <div class="preview-iframe-wrap">
+        <div class="preview-empty" id="previewEmpty">
+          <div style="font-size:40px;opacity:.3">⚡</div>
+          <div style="font-size:13px">Нажмите ▶ Запустить или попросите агента написать код</div>
+        </div>
+        <iframe class="preview-iframe" id="previewFrame" style="display:none" sandbox="allow-scripts allow-same-origin"></iframe>
+      </div>
     </div>
   </div>
 </div>
 
+</div><!-- /screens -->
+
 <script>
-const AGENTS = {
-  game_designer:    { name:'Game Designer',    emoji:'🎮', vibe:'Думает циклами, рычагами и мотивацией игроков',          color:'#eab308' },
-  rapid_prototyper: { name:'Rapid Prototyper', emoji:'⚡', vibe:'Превращает идею в рабочий прототип до конца встречи',    color:'#22c55e' },
-  whimsy_injector:  { name:'Whimsy Injector',  emoji:'✨', vibe:'Добавляет неожиданные моменты восторга в интерфейс',      color:'#ec4899' },
-  reality_checker:  { name:'Reality Checker',  emoji:'🧐', vibe:'По умолчанию NEEDS WORK — требует доказательств',        color:'#ef4444' },
-};
+// ── AGENT DEFINITIONS ────────────────────────────────────────────────────────
+const AGENTS = [
+  // Engineering
+  { id:'frontend_dev',    emoji:'🎨', name:'Frontend Developer',    div:'Engineering',  color:'#3b82f6',
+    vibe:'React/Vue/Angular, UI implementation, performance',
+    system:`You are Frontend Developer, a specialist in modern web development. You build pixel-perfect, performant UIs using React, Vue, Angular, and vanilla JS/CSS. You write clean, accessible code and optimize for Core Web Vitals. When asked to build something, output complete working HTML/CSS/JS in a \`\`\`html code block. Respond in the same language the user writes in.` },
+  { id:'rapid_prototyper',emoji:'⚡', name:'Rapid Prototyper',      div:'Engineering',  color:'#22c55e',
+    vibe:'Fast POC development, MVPs, hackathon projects',
+    system:`You are Rapid Prototyper. You build working HTML/CSS/JS prototypes FAST. Always output a complete self-contained HTML file in a \`\`\`html code block. No external dependencies unless CDN. The code must work immediately. Respond in the same language the user writes in.` },
+  { id:'backend_arch',    emoji:'🏗️', name:'Backend Architect',     div:'Engineering',  color:'#8b5cf6',
+    vibe:'API design, database architecture, scalability',
+    system:`You are Backend Architect. You design scalable server-side systems, APIs, and databases. You think in microservices, data models, and performance. Provide concrete architecture decisions with code examples. Respond in the same language the user writes in.` },
+  { id:'ai_engineer',     emoji:'🤖', name:'AI Engineer',           div:'Engineering',  color:'#06b6d4',
+    vibe:'ML models, deployment, AI integration',
+    system:`You are AI Engineer. You specialize in ML models, LLM integration, embeddings, RAG systems, and AI-powered features. You provide practical implementation advice with code. Respond in the same language the user writes in.` },
+  { id:'security_eng',    emoji:'🔒', name:'Security Engineer',     div:'Engineering',  color:'#ef4444',
+    vibe:'Threat modeling, secure code review, vulnerabilities',
+    system:`You are Security Engineer. You find vulnerabilities, review code for security issues, and design secure architectures. You think like an attacker to defend like a defender. Respond in the same language the user writes in.` },
+  // Design
+  { id:'ui_designer',     emoji:'🎯', name:'UI Designer',           div:'Design',       color:'#f59e0b',
+    vibe:'Visual design, component libraries, design systems',
+    system:`You are UI Designer. You create beautiful, consistent interfaces. You think in design systems, color theory, typography, and component libraries. You provide specific CSS, design tokens, and visual guidance. Respond in the same language the user writes in.` },
+  { id:'ux_researcher',   emoji:'🔍', name:'UX Researcher',         div:'Design',       color:'#10b981',
+    vibe:'User testing, behavior analysis, usability insights',
+    system:`You are UX Researcher. You understand user behavior, run usability tests, and extract actionable insights. You challenge assumptions with data and user evidence. Respond in the same language the user writes in.` },
+  { id:'whimsy_injector', emoji:'✨', name:'Whimsy Injector',       div:'Design',       color:'#ec4899',
+    vibe:'Personality, delight, playful micro-interactions',
+    system:`You are Whimsy Injector. You add personality, delight, and unexpected joy to interfaces. You think in animations, micro-interactions, Easter eggs, and celebration moments. When given code, enhance it with CSS animations and Web Audio API effects. Output complete HTML in \`\`\`html blocks. Respond in the same language the user writes in.` },
+  // Game Dev
+  { id:'game_designer',   emoji:'🎮', name:'Game Designer',         div:'Game Dev',     color:'#eab308',
+    vibe:'Systems design, game mechanics, player motivation',
+    system:`You are Game Designer. You design gameplay systems, mechanics, economies, and player progressions. You think in loops, levers, and player motivations. Always end with a clear "Brief for Rapid Prototyper:" section. Respond in the same language the user writes in.` },
+  { id:'level_designer',  emoji:'🗺️', name:'Level Designer',        div:'Game Dev',     color:'#84cc16',
+    vibe:'Layout theory, pacing, encounter design',
+    system:`You are Level Designer. You design levels, encounters, and spatial narratives. You think in player flow, pacing, and environmental storytelling. Respond in the same language the user writes in.` },
+  // Testing
+  { id:'reality_checker', emoji:'🧐', name:'Reality Checker',       div:'Testing',      color:'#ef4444',
+    vibe:'Evidence-based QA, default NEEDS WORK',
+    system:`You are Reality Checker. Your default status is NEEDS WORK. You find bugs, UX issues, and broken functionality. You provide structured bug reports with severity ratings. Format: ## Reality Check Report, **Rating**: C+/B-/B/B+, **Status**: NEEDS WORK/READY, ### Bugs Found, ### UX Issues, ### Fix List. Respond in the same language the user writes in.` },
+  // Marketing
+  { id:'growth_hacker',   emoji:'🚀', name:'Growth Hacker',         div:'Marketing',    color:'#f97316',
+    vibe:'Rapid user acquisition, viral loops, experiments',
+    system:`You are Growth Hacker. You design viral loops, acquisition experiments, and conversion funnels. You think in metrics, A/B tests, and growth levers. Respond in the same language the user writes in.` },
+  { id:'content_creator', emoji:'📝', name:'Content Creator',       div:'Marketing',    color:'#a78bfa',
+    vibe:'Multi-platform content, editorial calendars',
+    system:`You are Content Creator. You craft compelling content for any platform. You understand tone, audience, and platform-specific formats. Respond in the same language the user writes in.` },
+  { id:'seo_specialist',  emoji:'🔍', name:'SEO Specialist',        div:'Marketing',    color:'#34d399',
+    vibe:'Technical SEO, content strategy, link building',
+    system:`You are SEO Specialist. You drive organic search growth through technical SEO, content strategy, and link building. You provide actionable recommendations with expected impact. Respond in the same language the user writes in.` },
+  // Product
+  { id:'product_manager', emoji:'🧭', name:'Product Manager',       div:'Product',      color:'#60a5fa',
+    vibe:'Full lifecycle product ownership, PRDs, roadmaps',
+    system:`You are Product Manager. You own the full product lifecycle from discovery to GTM. You write PRDs, prioritize backlogs, and align stakeholders. You think in user value and business outcomes. Respond in the same language the user writes in.` },
+  { id:'trend_researcher',emoji:'🔭', name:'Trend Researcher',      div:'Product',      color:'#c084fc',
+    vibe:'Market intelligence, competitive analysis',
+    system:`You are Trend Researcher. You identify market trends, analyze competitors, and spot opportunities. You provide data-backed insights and strategic recommendations. Respond in the same language the user writes in.` },
+  // Strategy
+  { id:'agents_orch',     emoji:'🎭', name:'Agents Orchestrator',   div:'Specialized',  color:'#f43f5e',
+    vibe:'Multi-agent coordination, workflow management',
+    system:`You are Agents Orchestrator. You coordinate complex multi-agent workflows. Given a task, you break it down and recommend which agents to use in what order, and how to combine their outputs. Respond in the same language the user writes in.` },
+  // Support
+  { id:'analytics_rep',   emoji:'📊', name:'Analytics Reporter',    div:'Support',      color:'#0ea5e9',
+    vibe:'Data analysis, dashboards, KPI insights',
+    system:`You are Analytics Reporter. You analyze data, build dashboards, and extract business insights. You translate numbers into actionable decisions. Respond in the same language the user writes in.` },
+];
 
-let currentAgent = 'game_designer';
-let histories = { game_designer:[], rapid_prototyper:[], whimsy_injector:[], reality_checker:[] };
-let currentCode = '';
+// ── STATE ────────────────────────────────────────────────────────────────────
+let currentAgent = AGENTS[0].id;
+let histories = {};
+AGENTS.forEach(a => histories[a.id] = []);
+let selectedForBroadcast = new Set();
 let isStreaming = false;
+let currentCode = '';
 
-// Init
-switchAgent('game_designer');
+// ── INIT ─────────────────────────────────────────────────────────────────────
+function init() {
+  renderSidebar();
+  renderAgentTabs();
+  switchAgent(AGENTS[0].id);
+}
+
+function renderSidebar() {
+  const list = document.getElementById('agentList');
+  list.innerHTML = AGENTS.map(a => `
+    <div class="agent-item ${a.id === currentAgent ? 'active' : ''} ${selectedForBroadcast.has(a.id) ? 'selected-for-broadcast' : ''}"
+         id="sidebar_${a.id}" onclick="handleAgentClick(event, '${a.id}')">
+      <span class="agent-emoji">${a.emoji}</span>
+      <div class="agent-info">
+        <div class="agent-name">${a.name}</div>
+        <div class="agent-div">${a.div}</div>
+      </div>
+      <div class="agent-check">${selectedForBroadcast.has(a.id) ? '✓' : ''}</div>
+    </div>`).join('');
+  const cnt = selectedForBroadcast.size;
+  document.getElementById('selectedCount').textContent = cnt > 0 ? `(${cnt})` : '';
+}
+
+function renderAgentTabs() {
+  const row = document.getElementById('agentTabsRow');
+  // Show only recently active agents + current
+  const active = AGENTS.filter(a => histories[a.id].length > 0 || a.id === currentAgent);
+  row.innerHTML = active.map(a => `
+    <button class="agent-tab ${a.id === currentAgent ? 'active' : ''}" onclick="switchAgent('${a.id}')">
+      ${a.emoji} ${a.name}
+    </button>`).join('');
+}
+
+function handleAgentClick(e, agentId) {
+  // Ctrl/Cmd click = toggle broadcast selection
+  if (e.ctrlKey || e.metaKey || e.shiftKey) {
+    if (selectedForBroadcast.has(agentId)) selectedForBroadcast.delete(agentId);
+    else selectedForBroadcast.add(agentId);
+    renderSidebar();
+    return;
+  }
+  switchAgent(agentId);
+}
 
 function switchAgent(agentId) {
   currentAgent = agentId;
-  const a = AGENTS[agentId];
-  document.querySelectorAll('.agent-tab').forEach(t => t.classList.toggle('active', t.dataset.agent === agentId));
-  document.getElementById('agentEmoji').textContent = a.emoji;
-  document.getElementById('agentName').textContent = a.name;
-  document.getElementById('agentVibe').textContent = a.vibe;
+  const a = AGENTS.find(x => x.id === agentId);
+  document.getElementById('chatInput').placeholder = `Спросите ${a.name}...`;
   renderMessages();
-  renderActionBar();
+  renderSidebar();
+  renderAgentTabs();
   if (histories[agentId].length === 0) addWelcome(agentId);
 }
 
 function addWelcome(agentId) {
-  const greets = {
-    game_designer: 'Привет! Я **Game Designer** 🎮\n\nПомогу придумать игровые механики, написать концепцию и описать что нужно сделать Rapid Prototyper. Начни с задачи — например: *"Придумай 3 мини-игры на HTML/CSS/JS"*',
-    rapid_prototyper: 'Привет! Я **Rapid Prototyper** ⚡\n\nПишу рабочий HTML/CSS/JS код прямо в live preview. Дай мне задачу или передай описание от Game Designer — и я начну кодить.',
-    whimsy_injector: 'Привет! Я **Whimsy Injector** ✨\n\nВижу что сделал Rapid Prototyper и добавляю магию: анимации, эффекты, неожиданные детали. Нажми *"Передать мне код"* или опиши что улучшить.',
-    reality_checker: 'Привет. Я **Reality Checker** 🧐\n\nМой статус по умолчанию: **NEEDS WORK**. Покажи мне код — найду баги, проблемы UX и что не работает. Потом передашь список Rapid Prototyper для фикса.',
-  };
-  histories[agentId].push({ role:'assistant', content: greets[agentId] });
+  const a = AGENTS.find(x => x.id === agentId);
+  histories[agentId].push({ role:'assistant', content:`Привет! Я **${a.name}** ${a.emoji}\n\n${a.vibe}.\n\nЧем могу помочь?` });
   renderMessages();
 }
 
 function renderMessages() {
   const el = document.getElementById('messages');
-  el.innerHTML = histories[currentAgent].map(renderMsg).join('');
+  const a = AGENTS.find(x => x.id === currentAgent);
+  el.innerHTML = histories[currentAgent].map(m => renderMsg(m, a)).join('');
   scrollBottom();
 }
 
-function renderMsg(msg) {
+function renderMsg(msg, agent) {
   const isUser = msg.role === 'user';
-  const a = AGENTS[currentAgent];
   return `<div class="msg ${isUser?'user':'assistant'}">
-    <div class="msg-avatar">${isUser?'👤':a.emoji}</div>
-    <div class="msg-bubble">${fmt(msg.content)}</div>
+    <div class="msg-avatar">${isUser?'👤':agent.emoji}</div>
+    <div>
+      ${!isUser && msg.agentName ? `<div class="msg-agent-label">${msg.agentName}</div>` : ''}
+      <div class="msg-bubble">${fmt(msg.content)}</div>
+    </div>
   </div>`;
 }
 
 function fmt(t) {
   return t
+    .replace(/```html\n?([\s\S]*?)```/g, (_, c) => { updateCodeEditor(c.trim()); return `<pre><code>${escHtml(c)}</code></pre>`; })
     .replace(/```[\w]*\n?([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
@@ -209,40 +343,17 @@ function fmt(t) {
     .replace(/\n/g, '<br>');
 }
 
-function renderActionBar() {
-  const bar = document.getElementById('actionBar');
-  const btns = {
-    game_designer: `<button class="action-btn primary" onclick="passToAgent('rapid_prototyper')">⚡ Передать Rapid Prototyper</button>`,
-    rapid_prototyper: `<button class="action-btn primary" onclick="passToAgent('whimsy_injector')">✨ Передать Whimsy Injector</button>
-      <button class="action-btn" onclick="passToAgent('reality_checker')">🧐 Передать Reality Checker</button>`,
-    whimsy_injector: `<button class="action-btn primary" onclick="passToAgent('reality_checker')">🧐 Передать Reality Checker</button>
-      <button class="action-btn" onclick="passToAgent('rapid_prototyper')">⚡ Вернуть Rapid Prototyper</button>`,
-    reality_checker: `<button class="action-btn primary" onclick="passToAgent('rapid_prototyper')">⚡ Отправить фикс Rapid Prototyper</button>`,
-  };
-  bar.innerHTML = `<button class="action-btn" onclick="clearChat()">🗑 Очистить чат</button>${btns[currentAgent]||''}`;
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function updateCodeEditor(html) {
+  currentCode = html;
+  document.getElementById('codeEditor').value = html;
+  document.getElementById('previewStatus').textContent = '✅ Обновлено';
 }
 
-function passToAgent(targetAgent) {
-  // Get last assistant message from current agent
-  const lastMsgs = histories[currentAgent].filter(m => m.role === 'assistant');
-  if (!lastMsgs.length) { alert('Нет сообщений для передачи'); return; }
-  const lastMsg = lastMsgs[lastMsgs.length - 1].content;
-
-  const fromAgent = AGENTS[currentAgent];
-  const toAgent = AGENTS[targetAgent];
-
-  // Add context message to target agent
-  const contextMsg = `[Передано от ${fromAgent.name}]:\n\n${lastMsg}${currentCode ? '\n\n[Текущий код в preview]:\n```html\n' + currentCode + '\n```' : ''}`;
-  histories[targetAgent].push({ role: 'user', content: contextMsg });
-
-  switchAgent(targetAgent);
-
-  // Auto-send
-  setTimeout(() => autoRespond(targetAgent, contextMsg), 300);
-}
-
-async function autoRespond(agentId, userMsg) {
-  await streamChat(agentId, histories[agentId]);
+function scrollBottom() {
+  const el = document.getElementById('messages');
+  if (el) el.scrollTop = el.scrollHeight;
 }
 
 function handleKey(e) {
@@ -251,17 +362,7 @@ function handleKey(e) {
 
 function autoResize(el) {
   el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
-}
-
-function scrollBottom() {
-  const el = document.getElementById('messages');
-  if (el) el.scrollTop = el.scrollHeight;
-}
-
-function clearChat() {
-  histories[currentAgent] = [];
-  addWelcome(currentAgent);
+  el.style.height = Math.min(el.scrollHeight, 90) + 'px';
 }
 
 async function sendMessage() {
@@ -269,144 +370,200 @@ async function sendMessage() {
   const input = document.getElementById('chatInput');
   const text = input.value.trim();
   if (!text) return;
-
-  input.value = '';
-  input.style.height = 'auto';
-
+  input.value = ''; input.style.height = 'auto';
   histories[currentAgent].push({ role:'user', content: text });
   renderMessages();
-
   await streamChat(currentAgent, histories[currentAgent]);
+}
+
+async function broadcastQuestion() {
+  if (isStreaming) return;
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) { alert('Введите вопрос для рассылки'); return; }
+
+  const targets = selectedForBroadcast.size > 0
+    ? AGENTS.filter(a => selectedForBroadcast.has(a.id))
+    : AGENTS;
+
+  input.value = ''; input.style.height = 'auto';
+
+  // Show broadcast mode in messages
+  const messagesEl = document.getElementById('messages');
+  messagesEl.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:12px;padding:10px">🌐 Рассылка ${targets.length} агентам: "${text}"</div>`;
+
+  // Ask all agents in parallel
+  const promises = targets.map(a => askAgentOnce(a, text));
+  const results = await Promise.all(promises);
+
+  // Find best recommendation
+  const recPrompt = `Пользователь спросил: "${text}"\n\nОтветы агентов:\n${results.map(r => `${r.agent.name}: ${r.content.slice(0,200)}`).join('\n\n')}\n\nКакой агент лучше всего подходит для этого вопроса и почему? Ответь кратко (1-2 предложения).`;
+
+  // Render results
+  messagesEl.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:12px;padding:10px">🌐 Ответы на: "${text}"</div>`;
+  results.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'broadcast-card';
+    div.innerHTML = `<div class="broadcast-card-header">
+      <span style="font-size:18px">${r.agent.emoji}</span>
+      <span class="broadcast-card-name">${r.agent.name}</span>
+      <span style="font-size:10px;color:var(--muted);margin-left:4px">${r.agent.div}</span>
+      <button style="margin-left:auto;background:var(--accent);color:#fff;border:none;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:'Inter',sans-serif" onclick="switchAgent('${r.agent.id}')">Открыть чат →</button>
+    </div>
+    <div class="broadcast-card-body">${fmt(r.content.slice(0, 400))}${r.content.length > 400 ? '...' : ''}</div>`;
+    messagesEl.appendChild(div);
+    // Save to history
+    histories[r.agent.id].push({ role:'user', content: text });
+    histories[r.agent.id].push({ role:'assistant', content: r.content });
+  });
+  scrollBottom();
+}
+
+async function askAgentOnce(agent, question) {
+  try {
+    const res = await fetch('/agents/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent: agent.id, messages: [{ role:'user', content: question }] })
+    });
+    if (!res.ok) return { agent, content: '⚠️ Ошибка' };
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let full = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const line of decoder.decode(value).split('\n')) {
+        if (line.startsWith('data: ')) {
+          const d = line.slice(6);
+          if (d === '[DONE]') break;
+          try { const p = JSON.parse(d); if (p.content) full += p.content; } catch(e) {}
+        }
+      }
+    }
+    return { agent, content: full || '(нет ответа)' };
+  } catch(e) {
+    return { agent, content: '⚠️ ' + e.message };
+  }
 }
 
 async function streamChat(agentId, messages) {
   isStreaming = true;
   document.getElementById('sendBtn').disabled = true;
-
-  // Add typing indicator
-  const typingId = 'typing_' + Date.now();
+  const a = AGENTS.find(x => x.id === agentId);
   const messagesEl = document.getElementById('messages');
+
+  const typingId = 'typing_' + Date.now();
   messagesEl.innerHTML += `<div class="msg assistant" id="${typingId}">
-    <div class="msg-avatar">${AGENTS[agentId].emoji}</div>
+    <div class="msg-avatar">${a.emoji}</div>
     <div class="typing-ind"><span></span><span></span><span></span></div>
   </div>`;
   scrollBottom();
 
   let fullContent = '';
-
   try {
     const res = await fetch('/agents/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ agent: agentId, messages: messages.slice(-20) })
     });
-
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || 'Ошибка сервера');
-    }
+    if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Ошибка'); }
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
-
-    // Remove typing indicator, add streaming bubble
     document.getElementById(typingId)?.remove();
     const streamId = 'stream_' + Date.now();
     messagesEl.innerHTML += `<div class="msg assistant" id="${streamId}">
-      <div class="msg-avatar">${AGENTS[agentId].emoji}</div>
+      <div class="msg-avatar">${a.emoji}</div>
       <div class="msg-bubble" id="streamBubble"></div>
     </div>`;
-
-    document.getElementById('previewStatus').innerHTML = '<span class="streaming-badge">● Генерация...</span>';
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
-      for (const line of lines) {
+      for (const line of decoder.decode(value).split('\n')) {
         if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          if (data === '[DONE]') break;
+          const d = line.slice(6);
+          if (d === '[DONE]') break;
           try {
-            const parsed = JSON.parse(data);
-            if (parsed.content) {
-              fullContent += parsed.content;
+            const p = JSON.parse(d);
+            if (p.content) {
+              fullContent += p.content;
               document.getElementById('streamBubble').innerHTML = fmt(fullContent);
               scrollBottom();
-              // Extract and update preview if HTML found
-              updatePreviewFromContent(fullContent);
             }
           } catch(e) {}
         }
       }
     }
-
   } catch(err) {
     document.getElementById(typingId)?.remove();
     fullContent = '⚠️ Ошибка: ' + err.message;
-    messagesEl.innerHTML += `<div class="msg assistant">
-      <div class="msg-avatar">${AGENTS[agentId].emoji}</div>
-      <div class="msg-bubble">${fmt(fullContent)}</div>
-    </div>`;
+    messagesEl.innerHTML += `<div class="msg assistant"><div class="msg-avatar">${a.emoji}</div><div class="msg-bubble">${fmt(fullContent)}</div></div>`;
   }
 
-  // Save to history
-  if (fullContent) {
-    histories[agentId].push({ role:'assistant', content: fullContent });
-  }
-
-  document.getElementById('previewStatus').textContent = currentCode ? 'Обновлено' : 'Ожидание';
+  if (fullContent) histories[agentId].push({ role:'assistant', content: fullContent });
   isStreaming = false;
   document.getElementById('sendBtn').disabled = false;
+  renderAgentTabs();
   scrollBottom();
 }
 
-function updatePreviewFromContent(content) {
-  // Extract full HTML document or html code block
-  let html = '';
-  const fullDoc = content.match(/```html\n?([\s\S]*?)```/);
-  if (fullDoc) {
-    html = fullDoc[1].trim();
-  } else {
-    // Try to find <!DOCTYPE or <html
-    const docMatch = content.match(/(<!DOCTYPE[\s\S]*<\/html>)/i);
-    if (docMatch) html = docMatch[1];
-  }
-
-  if (html && html !== currentCode) {
-    currentCode = html;
-    const frame = document.getElementById('previewFrame');
-    const empty = document.getElementById('previewEmpty');
-    frame.style.display = 'block';
-    empty.style.display = 'none';
-    frame.srcdoc = html;
-    document.getElementById('previewStatus').textContent = '✅ Обновлено';
-  }
+// ── SCREEN 2 ─────────────────────────────────────────────────────────────────
+function runCode() {
+  const code = document.getElementById('codeEditor').value.trim();
+  if (!code) return;
+  currentCode = code;
+  const frame = document.getElementById('previewFrame');
+  frame.style.display = 'block';
+  document.getElementById('previewEmpty').style.display = 'none';
+  frame.srcdoc = code;
+  document.getElementById('previewStatus').textContent = '✅ Запущено';
 }
 
-function copyCode() {
-  if (!currentCode) { alert('Нет кода для копирования'); return; }
-  navigator.clipboard.writeText(currentCode).then(() => {
-    const btn = event.target;
-    btn.textContent = '✅ Скопировано';
-    setTimeout(() => btn.textContent = '📋 Копировать код', 2000);
-  });
-}
-
-function clearPreview() {
-  currentCode = '';
+function clearCode() {
+  document.getElementById('codeEditor').value = '';
   document.getElementById('previewFrame').style.display = 'none';
   document.getElementById('previewEmpty').style.display = 'flex';
   document.getElementById('previewStatus').textContent = 'Ожидание';
+  currentCode = '';
+}
+
+function copyCode() {
+  const code = document.getElementById('codeEditor').value;
+  if (!code) { alert('Нет кода'); return; }
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = event.target;
+    btn.textContent = '✅ Скопировано';
+    setTimeout(() => btn.textContent = '📋 Копировать', 2000);
+  });
 }
 
 function openFullscreen() {
-  if (!currentCode) { alert('Нет кода для отображения'); return; }
+  const code = document.getElementById('codeEditor').value;
+  if (!code) { alert('Нет кода'); return; }
   const w = window.open('', '_blank');
-  w.document.write(currentCode);
+  w.document.write(code);
   w.document.close();
 }
+
+// ── SCREEN SWITCH ─────────────────────────────────────────────────────────────
+function switchScreen(n) {
+  document.querySelectorAll('.screen').forEach((s,i) => s.classList.toggle('active', i+1 === n));
+  document.querySelectorAll('.screen-tab').forEach((t,i) => t.classList.toggle('active', i+1 === n));
+}
+
+// ── HINT ─────────────────────────────────────────────────────────────────────
+// Ctrl+click sidebar items to select for broadcast
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+  // Add hint
+  const hint = document.createElement('div');
+  hint.style.cssText = 'position:fixed;bottom:12px;right:12px;font-size:11px;color:#374151;background:var(--bg2);border:1px solid var(--border);padding:6px 10px;border-radius:8px;z-index:100;';
+  hint.textContent = 'Ctrl+клик по агенту = выбрать для рассылки';
+  document.body.appendChild(hint);
+  setTimeout(() => hint.remove(), 5000);
+});
 </script>
 </body>
 </html>
