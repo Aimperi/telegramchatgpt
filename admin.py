@@ -1560,6 +1560,8 @@ async def youtube_download(req: YoutubeDownloadRequest):
     if "youtube.com" not in url and "youtu.be" not in url:
         raise HTTPException(status_code=400, detail="Only YouTube URLs supported")
 
+    logger.info(f"YouTube download: {url}")
+
     try:
         import yt_dlp
 
@@ -1567,30 +1569,44 @@ async def youtube_download(req: YoutubeDownloadRequest):
             output_template = os.path.join(tmpdir, "%(title)s.%(ext)s")
 
             ydl_opts = {
-                "format": "best[ext=mp4]/best[height<=720]/best",
+                "format": "best[ext=mp4]/best",
                 "outtmpl": output_template,
-                "quiet": True,
-                "no_warnings": True,
+                "quiet": False,
+                "no_warnings": False,
+                "extractor_args": {
+                    "youtube": {
+                        "player_client": ["android"],
+                        "player_skip": ["webpage", "configs"],
+                    }
+                },
+                "http_headers": {
+                    "User-Agent": "com.google.android.youtube/17.36.4 (Linux; U; Android 12; GB) gzip",
+                },
             }
 
+            logger.info("yt-dlp: starting extract_info with android client")
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
                 title = info.get("title", "video")
+                ext = info.get("ext", "mp4")
+                logger.info(f"yt-dlp: done title={title!r} ext={ext}")
 
-            # Find downloaded file
             files = os.listdir(tmpdir)
+            logger.info(f"yt-dlp: files in tmpdir={files}")
             if not files:
                 raise HTTPException(status_code=500, detail="Download failed — no file produced")
 
             filepath = os.path.join(tmpdir, files[0])
+            filesize = os.path.getsize(filepath)
+            logger.info(f"yt-dlp: file={files[0]} size={filesize}")
 
-            # Sanitize filename
             safe_title = re.sub(r'[^\w\s\-.]', '', title)[:80].strip() or "video"
             filename = f"{safe_title}.mp4"
 
             with open(filepath, "rb") as f:
                 content = f.read()
 
+        logger.info(f"YouTube: sending {len(content)} bytes as {filename}")
         return StreamingResponse(
             io.BytesIO(content),
             media_type="video/mp4",
@@ -1601,13 +1617,15 @@ async def youtube_download(req: YoutubeDownloadRequest):
         )
 
     except yt_dlp.utils.DownloadError as e:
-        logger.error(f"yt-dlp download error: {e}")
-        msg = str(e)
-        if "Private video" in msg:
+        err = str(e)
+        logger.error(f"yt-dlp DownloadError: {err}")
+        if "Sign in" in err or "bot" in err:
+            raise HTTPException(status_code=400, detail="YouTube заблокировал запрос. Попробуйте другое видео.")
+        if "Private video" in err:
             raise HTTPException(status_code=400, detail="Видео приватное")
-        if "not available" in msg:
-            raise HTTPException(status_code=400, detail="Видео недоступно")
-        raise HTTPException(status_code=400, detail="Не удалось скачать видео")
+        if "not available" in err:
+            raise HTTPException(status_code=400, detail="Видео недоступно в этом регионе")
+        raise HTTPException(status_code=400, detail=err[:300])
     except Exception as e:
-        logger.error(f"YouTube download error: {e}")
+        logger.error(f"YouTube unexpected error: {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
