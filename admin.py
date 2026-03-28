@@ -1607,11 +1607,14 @@ async def youtube_download(req: YoutubeDownloadRequest):
                 content = f.read()
 
         logger.info(f"YouTube: sending {len(content)} bytes as {filename}")
+        from urllib.parse import quote
+        ascii_filename = re.sub(r'[^\x00-\x7F]', '_', filename)
+        encoded_filename = quote(filename, safe='')
         return StreamingResponse(
             io.BytesIO(content),
             media_type="video/mp4",
             headers={
-                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Disposition": f"attachment; filename=\"{ascii_filename}\"; filename*=UTF-8''{encoded_filename}",
                 "Content-Length": str(len(content)),
             }
         )
