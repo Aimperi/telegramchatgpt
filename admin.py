@@ -36,7 +36,18 @@ class LargeBodyMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(LargeBodyMiddleware)
 
-templates = Jinja2Templates(directory="templates")
+from jinja2 import Environment, FileSystemLoader as _FSLoader
+_j2env = Environment(loader=_FSLoader("templates"), auto_reload=True)
+_j2env.cache = {}  # fix: unhashable type 'dict' in Jinja2 LRU cache
+
+class _T:
+    def __init__(self, env): self.env = env
+    def TemplateResponse(self, name, context=None, status_code=200, headers=None, **kw):
+        ctx = context or {}
+        html = self.env.get_template(name).render(**ctx)
+        return HTMLResponse(content=html, status_code=status_code, headers=headers)
+
+templates = _T(_j2env)
 
 # Will be set from bot.py after db is initialized
 db = None
