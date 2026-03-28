@@ -1551,7 +1551,7 @@ async def youtube_page(request: Request):
 @app.post("/youtube/download")
 async def youtube_download(req: YoutubeDownloadRequest):
     """Download YouTube video as MP4 using yt-dlp."""
-    import tempfile, os, re
+    import tempfile, os, re, io
     from fastapi import HTTPException
 
     url = req.url.strip()
@@ -1592,7 +1592,7 @@ async def youtube_download(req: YoutubeDownloadRequest):
                 content = f.read()
 
         return StreamingResponse(
-            _io.BytesIO(content),
+            io.BytesIO(content),
             media_type="video/mp4",
             headers={
                 "Content-Disposition": f'attachment; filename="{filename}"',
