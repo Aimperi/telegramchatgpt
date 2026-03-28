@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YouTube Downloader</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:#0a0a14;color:#f1f5f9;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+.logo{font-size:28px;font-weight:700;margin-bottom:48px;display:flex;align-items:center;gap:10px;}
+.logo-icon{width:40px;height:40px;background:#ff0000;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+.search-wrap{width:100%;max-width:640px;}
+.search-box{display:flex;gap:0;background:#12121f;border:1px solid #2a2a4a;border-radius:14px;overflow:hidden;transition:border-color .2s;}
+.search-box:focus-within{border-color:#6366f1;}
+.search-input{flex:1;background:transparent;border:none;padding:16px 20px;color:#f1f5f9;font-size:15px;font-family:'Inter',sans-serif;outline:none;}
+.search-input::placeholder{color:#4b5563;}
+.search-btn{background:#6366f1;color:#fff;border:none;padding:16px 24px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:background .2s;white-space:nowrap;}
+.search-btn:hover{background:#4f46e5;}
+.search-btn:disabled{background:#374151;cursor:not-allowed;}
+.status{margin-top:20px;font-size:14px;color:#94a3b8;text-align:center;min-height:20px;}
+.status.error{color:#f87171;}
+.status.success{color:#22c55e;}
+.progress{width:100%;max-width:640px;margin-top:12px;height:4px;background:#1f2937;border-radius:4px;overflow:hidden;display:none;}
+.progress-bar{height:100%;background:#6366f1;border-radius:4px;width:0%;transition:width .3s;}
+.hint{margin-top:16px;font-size:12px;color:#374151;text-align:center;}
+</style>
+</head>
+<body>
+
+<div class="logo">
+  <div class="logo-icon">▶</div>
+  YT Downloader
+</div>
+
+<div class="search-wrap">
+  <div class="search-box">
+    <input class="search-input" id="urlInput" type="text"
+      placeholder="Вставьте ссылку на YouTube видео..."
+      onkeydown="if(event.key==='Enter') download()">
+    <button class="search-btn" id="dlBtn" onclick="download()">⬇ Скачать</button>
+  </div>
+  <div class="progress" id="progress"><div class="progress-bar" id="progressBar"></div></div>
+  <div class="status" id="status"></div>
+  <div class="hint">Поддерживаются ссылки youtube.com и youtu.be · Скачивается в MP4</div>
+</div>
+
+<script>
+async function download() {
+  const url = document.getElementById('urlInput').value.trim();
+  const btn = document.getElementById('dlBtn');
+  const status = document.getElementById('status');
+  const progress = document.getElementById('progress');
+  const bar = document.getElementById('progressBar');
+
+  if (!url) { setStatus('Вставьте ссылку на видео', 'error'); return; }
+  if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+    setStatus('Только YouTube ссылки', 'error'); return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Загрузка...';
+  progress.style.display = 'block';
+  bar.style.width = '20%';
+  setStatus('Получаем видео...', '');
+
+  try {
+    bar.style.width = '50%';
+    const resp = await fetch('/youtube/download', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url})
+    });
+
+    bar.style.width = '90%';
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.detail || 'Ошибка сервера');
+    }
+
+    // Get filename from header
+    const disposition = resp.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const filename = match ? match[1] : 'video.mp4';
+
+    const blob = await resp.blob();
+    bar.style.width = '100%';
+
+    // Trigger download
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    setStatus('✅ Готово! Файл скачан.', 'success');
+  } catch(e) {
+    setStatus('❌ ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⬇ Скачать';
+    setTimeout(() => { progress.style.display = 'none'; bar.style.width = '0%'; }, 2000);
+  }
+}
+
+function setStatus(msg, cls) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status ' + cls;
+}
+</script>
+</body>
+</html>

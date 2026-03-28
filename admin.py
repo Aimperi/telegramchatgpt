@@ -1533,3 +1533,82 @@ async def agents_stream(req: AgentStreamRequest):
             "X-Accel-Buffering": "no",
         }
     )
+
+
+# ── YouTube Downloader ───────────────────────────────────────────────────────
+
+class YoutubeDownloadRequest(BaseModel):
+    url: str
+
+
+@app.get("/youtube/", response_class=HTMLResponse)
+async def youtube_page(request: Request):
+    import os as _os_yt
+    with open(_os_yt.path.join("templates", "youtube.html"), "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
+
+@app.post("/youtube/download")
+async def youtube_download(req: YoutubeDownloadRequest):
+    """Download YouTube video as MP4 using yt-dlp."""
+    import tempfile, os, re
+    from fastapi import HTTPException
+
+    url = req.url.strip()
+    if not url:
+        raise HTTPException(status_code=400, detail="URL is required")
+    if "youtube.com" not in url and "youtu.be" not in url:
+        raise HTTPException(status_code=400, detail="Only YouTube URLs supported")
+
+    try:
+        import yt_dlp
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_template = os.path.join(tmpdir, "%(title)s.%(ext)s")
+
+            ydl_opts = {
+                "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+                "outtmpl": output_template,
+                "quiet": True,
+                "no_warnings": True,
+                "merge_output_format": "mp4",
+            }
+
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                title = info.get("title", "video")
+
+            # Find downloaded file
+            files = os.listdir(tmpdir)
+            if not files:
+                raise HTTPException(status_code=500, detail="Download failed — no file produced")
+
+            filepath = os.path.join(tmpdir, files[0])
+
+            # Sanitize filename
+            safe_title = re.sub(r'[^\w\s\-.]', '', title)[:80].strip() or "video"
+            filename = f"{safe_title}.mp4"
+
+            with open(filepath, "rb") as f:
+                content = f.read()
+
+        return StreamingResponse(
+            _io.BytesIO(content),
+            media_type="video/mp4",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Content-Length": str(len(content)),
+            }
+        )
+
+    except yt_dlp.utils.DownloadError as e:
+        logger.error(f"yt-dlp download error: {e}")
+        msg = str(e)
+        if "Private video" in msg:
+            raise HTTPException(status_code=400, detail="Видео приватное")
+        if "not available" in msg:
+            raise HTTPException(status_code=400, detail="Видео недоступно")
+        raise HTTPException(status_code=400, detail="Не удалось скачать видео")
+    except Exception as e:
+        logger.error(f"YouTube download error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
