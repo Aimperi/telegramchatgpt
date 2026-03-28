@@ -1567,11 +1567,10 @@ async def youtube_download(req: YoutubeDownloadRequest):
             output_template = os.path.join(tmpdir, "%(title)s.%(ext)s")
 
             ydl_opts = {
-                "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+                "format": "best[ext=mp4]/best[height<=720]/best",
                 "outtmpl": output_template,
                 "quiet": True,
                 "no_warnings": True,
-                "merge_output_format": "mp4",
             }
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
