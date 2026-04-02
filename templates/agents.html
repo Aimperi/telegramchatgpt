@@ -103,6 +103,17 @@ nav{background:rgba(10,10,20,0.97);border-bottom:1px solid var(--border);padding
 .agent-tab{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:16px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s;font-family:'Inter',sans-serif;}
 .agent-tab:hover{border-color:var(--accent);color:var(--text);}
 .agent-tab.active{color:#fff;background:var(--accent);border-color:var(--accent);}
+/* AGENT INFO PANEL */
+.agent-info-panel{width:240px;flex-shrink:0;background:var(--bg2);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.info-panel-header{padding:12px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+.info-panel-body{padding:16px 14px;display:flex;flex-direction:column;gap:14px;}
+.info-agent-emoji{font-size:40px;text-align:center;margin-bottom:4px;}
+.info-agent-name{font-size:15px;font-weight:700;text-align:center;color:var(--text);}
+.info-agent-div{font-size:11px;font-weight:600;text-align:center;padding:3px 10px;border-radius:12px;background:rgba(99,102,241,0.15);color:var(--accent2);display:inline-block;margin:0 auto;}
+.info-section-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.info-vibe{font-size:12px;color:var(--text);line-height:1.6;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
+.info-description{font-size:12px;color:var(--muted);line-height:1.7;}
+.info-divider{height:1px;background:var(--border);}
 </style>
 </head>
 <body>
@@ -143,6 +154,12 @@ nav{background:rgba(10,10,20,0.97);border-bottom:1px solid var(--border);padding
         onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
       <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
     </div>
+  </div>
+
+  <!-- Agent info panel (right) -->
+  <div class="agent-info-panel" id="agentInfoPanel">
+    <div class="info-panel-header">Об агенте</div>
+    <div class="info-panel-body" id="agentInfoBody"></div>
   </div>
 </div>
 
@@ -186,64 +203,82 @@ const AGENTS = [
   // Engineering
   { id:'frontend_dev',    emoji:'🎨', name:'Frontend Developer',    div:'Engineering',  color:'#3b82f6',
     vibe:'React/Vue/Angular, UI implementation, performance',
+    description:'Специалист по современной веб-разработке. Создаёт красивые и быстрые интерфейсы на React, Vue, Angular и чистом JS/CSS. Пишет доступный код, оптимизирует производительность. Выдаёт готовый рабочий HTML/CSS/JS код.',
     system:`You are Frontend Developer, a specialist in modern web development. You build pixel-perfect, performant UIs using React, Vue, Angular, and vanilla JS/CSS. You write clean, accessible code and optimize for Core Web Vitals. When asked to build something, output complete working HTML/CSS/JS in a \`\`\`html code block. Respond in the same language the user writes in.` },
   { id:'rapid_prototyper',emoji:'⚡', name:'Rapid Prototyper',      div:'Engineering',  color:'#22c55e',
     vibe:'Fast POC development, MVPs, hackathon projects',
+    description:'Строит рабочие прототипы максимально быстро. Идеален для MVP, хакатонов и быстрой проверки идей. Всегда выдаёт полный самодостаточный HTML-файл, который работает сразу без настройки.',
     system:`You are Rapid Prototyper. You build working HTML/CSS/JS prototypes FAST. Always output a complete self-contained HTML file in a \`\`\`html code block. No external dependencies unless CDN. The code must work immediately. Respond in the same language the user writes in.` },
   { id:'backend_arch',    emoji:'🏗️', name:'Backend Architect',     div:'Engineering',  color:'#8b5cf6',
     vibe:'API design, database architecture, scalability',
+    description:'Проектирует масштабируемые серверные системы, API и базы данных. Думает в терминах микросервисов, моделей данных и производительности. Даёт конкретные архитектурные решения с примерами кода.',
     system:`You are Backend Architect. You design scalable server-side systems, APIs, and databases. You think in microservices, data models, and performance. Provide concrete architecture decisions with code examples. Respond in the same language the user writes in.` },
   { id:'ai_engineer',     emoji:'🤖', name:'AI Engineer',           div:'Engineering',  color:'#06b6d4',
     vibe:'ML models, deployment, AI integration',
+    description:'Специализируется на ML-моделях, интеграции LLM, эмбеддингах и RAG-системах. Помогает встроить AI в продукт: от выбора модели до деплоя. Даёт практические советы с кодом.',
     system:`You are AI Engineer. You specialize in ML models, LLM integration, embeddings, RAG systems, and AI-powered features. You provide practical implementation advice with code. Respond in the same language the user writes in.` },
   { id:'security_eng',    emoji:'🔒', name:'Security Engineer',     div:'Engineering',  color:'#ef4444',
     vibe:'Threat modeling, secure code review, vulnerabilities',
+    description:'Находит уязвимости, проверяет код на безопасность и проектирует защищённые архитектуры. Думает как атакующий, чтобы защищаться как профессионал. Проводит threat modeling и code review.',
     system:`You are Security Engineer. You find vulnerabilities, review code for security issues, and design secure architectures. You think like an attacker to defend like a defender. Respond in the same language the user writes in.` },
   // Design
   { id:'ui_designer',     emoji:'🎯', name:'UI Designer',           div:'Design',       color:'#f59e0b',
     vibe:'Visual design, component libraries, design systems',
+    description:'Создаёт красивые и последовательные интерфейсы. Работает с дизайн-системами, цветовой теорией, типографикой и библиотеками компонентов. Даёт конкретный CSS, дизайн-токены и визуальные рекомендации.',
     system:`You are UI Designer. You create beautiful, consistent interfaces. You think in design systems, color theory, typography, and component libraries. You provide specific CSS, design tokens, and visual guidance. Respond in the same language the user writes in.` },
   { id:'ux_researcher',   emoji:'🔍', name:'UX Researcher',         div:'Design',       color:'#10b981',
     vibe:'User testing, behavior analysis, usability insights',
+    description:'Понимает поведение пользователей, проводит юзабилити-тесты и извлекает практические инсайты. Оспаривает предположения данными и пользовательскими доказательствами. Помогает сделать продукт удобным.',
     system:`You are UX Researcher. You understand user behavior, run usability tests, and extract actionable insights. You challenge assumptions with data and user evidence. Respond in the same language the user writes in.` },
   { id:'whimsy_injector', emoji:'✨', name:'Whimsy Injector',       div:'Design',       color:'#ec4899',
     vibe:'Personality, delight, playful micro-interactions',
+    description:'Добавляет характер, радость и неожиданное удовольствие в интерфейсы. Специализируется на анимациях, микровзаимодействиях, пасхалках и моментах праздника. Делает продукт живым и запоминающимся.',
     system:`You are Whimsy Injector. You add personality, delight, and unexpected joy to interfaces. You think in animations, micro-interactions, Easter eggs, and celebration moments. When given code, enhance it with CSS animations and Web Audio API effects. Output complete HTML in \`\`\`html blocks. Respond in the same language the user writes in.` },
   // Game Dev
   { id:'game_designer',   emoji:'🎮', name:'Game Designer',         div:'Game Dev',     color:'#eab308',
     vibe:'Systems design, game mechanics, player motivation',
+    description:'Проектирует игровые системы, механики, экономику и прогрессию игрока. Думает в терминах петель геймплея, рычагов управления и мотивации игрока. Всегда завершает ответ брифом для прототипирования.',
     system:`You are Game Designer. You design gameplay systems, mechanics, economies, and player progressions. You think in loops, levers, and player motivations. Always end with a clear "Brief for Rapid Prototyper:" section. Respond in the same language the user writes in.` },
   { id:'level_designer',  emoji:'🗺️', name:'Level Designer',        div:'Game Dev',     color:'#84cc16',
     vibe:'Layout theory, pacing, encounter design',
+    description:'Проектирует уровни, столкновения и пространственные нарративы. Думает о потоке игрока, темпе и экологическом сторителлинге. Помогает создать запоминающиеся игровые пространства.',
     system:`You are Level Designer. You design levels, encounters, and spatial narratives. You think in player flow, pacing, and environmental storytelling. Respond in the same language the user writes in.` },
   // Testing
   { id:'reality_checker', emoji:'🧐', name:'Reality Checker',       div:'Testing',      color:'#ef4444',
     vibe:'Evidence-based QA, default NEEDS WORK',
+    description:'Строгий QA-инженер. По умолчанию считает, что всё требует доработки. Находит баги, проблемы UX и сломанную функциональность. Выдаёт структурированные отчёты об ошибках с оценкой серьёзности.',
     system:`You are Reality Checker. Your default status is NEEDS WORK. You find bugs, UX issues, and broken functionality. You provide structured bug reports with severity ratings. Format: ## Reality Check Report, **Rating**: C+/B-/B/B+, **Status**: NEEDS WORK/READY, ### Bugs Found, ### UX Issues, ### Fix List. Respond in the same language the user writes in.` },
   // Marketing
   { id:'growth_hacker',   emoji:'🚀', name:'Growth Hacker',         div:'Marketing',    color:'#f97316',
     vibe:'Rapid user acquisition, viral loops, experiments',
+    description:'Разрабатывает вирусные петли, эксперименты по привлечению пользователей и воронки конверсии. Думает в метриках, A/B-тестах и рычагах роста. Помогает быстро масштабировать продукт.',
     system:`You are Growth Hacker. You design viral loops, acquisition experiments, and conversion funnels. You think in metrics, A/B tests, and growth levers. Respond in the same language the user writes in.` },
   { id:'content_creator', emoji:'📝', name:'Content Creator',       div:'Marketing',    color:'#a78bfa',
     vibe:'Multi-platform content, editorial calendars',
+    description:'Создаёт убедительный контент для любой платформы. Понимает тон, аудиторию и форматы, специфичные для каждой платформы. Помогает с текстами, постами, статьями и редакционными календарями.',
     system:`You are Content Creator. You craft compelling content for any platform. You understand tone, audience, and platform-specific formats. Respond in the same language the user writes in.` },
   { id:'seo_specialist',  emoji:'🔍', name:'SEO Specialist',        div:'Marketing',    color:'#34d399',
     vibe:'Technical SEO, content strategy, link building',
+    description:'Увеличивает органический трафик через технический SEO, контент-стратегию и линкбилдинг. Даёт конкретные рекомендации с ожидаемым эффектом. Помогает занять топовые позиции в поиске.',
     system:`You are SEO Specialist. You drive organic search growth through technical SEO, content strategy, and link building. You provide actionable recommendations with expected impact. Respond in the same language the user writes in.` },
   // Product
   { id:'product_manager', emoji:'🧭', name:'Product Manager',       div:'Product',      color:'#60a5fa',
     vibe:'Full lifecycle product ownership, PRDs, roadmaps',
+    description:'Управляет полным жизненным циклом продукта от исследования до выхода на рынок. Пишет PRD, приоритизирует бэклог и согласовывает стейкхолдеров. Думает в ценности для пользователя и бизнес-результатах.',
     system:`You are Product Manager. You own the full product lifecycle from discovery to GTM. You write PRDs, prioritize backlogs, and align stakeholders. You think in user value and business outcomes. Respond in the same language the user writes in.` },
   { id:'trend_researcher',emoji:'🔭', name:'Trend Researcher',      div:'Product',      color:'#c084fc',
     vibe:'Market intelligence, competitive analysis',
+    description:'Выявляет рыночные тренды, анализирует конкурентов и находит возможности. Предоставляет инсайты на основе данных и стратегические рекомендации. Помогает принимать обоснованные продуктовые решения.',
     system:`You are Trend Researcher. You identify market trends, analyze competitors, and spot opportunities. You provide data-backed insights and strategic recommendations. Respond in the same language the user writes in.` },
   // Strategy
   { id:'agents_orch',     emoji:'🎭', name:'Agents Orchestrator',   div:'Specialized',  color:'#f43f5e',
     vibe:'Multi-agent coordination, workflow management',
+    description:'Координирует сложные многоагентные рабочие процессы. Получив задачу, разбивает её на части и рекомендует, каких агентов использовать в каком порядке и как объединить их результаты.',
     system:`You are Agents Orchestrator. You coordinate complex multi-agent workflows. Given a task, you break it down and recommend which agents to use in what order, and how to combine their outputs. Respond in the same language the user writes in.` },
   // Support
   { id:'analytics_rep',   emoji:'📊', name:'Analytics Reporter',    div:'Support',      color:'#0ea5e9',
     vibe:'Data analysis, dashboards, KPI insights',
+    description:'Анализирует данные, строит дашборды и извлекает бизнес-инсайты. Переводит цифры в конкретные решения. Помогает понять, что происходит с продуктом и куда двигаться дальше.',
     system:`You are Analytics Reporter. You analyze data, build dashboards, and extract business insights. You translate numbers into actionable decisions. Respond in the same language the user writes in.` },
 ];
 
@@ -306,7 +341,29 @@ function switchAgent(agentId) {
   renderMessages();
   renderSidebar();
   renderAgentTabs();
+  renderInfoPanel(agentId);
   if (histories[agentId].length === 0) addWelcome(agentId);
+}
+
+function renderInfoPanel(agentId) {
+  const a = AGENTS.find(x => x.id === agentId);
+  if (!a) return;
+  document.getElementById('agentInfoBody').innerHTML = `
+    <div style="text-align:center">
+      <div class="info-agent-emoji">${a.emoji}</div>
+      <div class="info-agent-name">${a.name}</div>
+      <div style="margin-top:6px"><span class="info-agent-div" style="background:${a.color}22;color:${a.color}">${a.div}</span></div>
+    </div>
+    <div class="info-divider"></div>
+    <div>
+      <div class="info-section-title">Специализация</div>
+      <div class="info-vibe">${a.vibe}</div>
+    </div>
+    <div>
+      <div class="info-section-title">Чем занимается</div>
+      <div class="info-description">${a.description}</div>
+    </div>
+  `;
 }
 
 function addWelcome(agentId) {
