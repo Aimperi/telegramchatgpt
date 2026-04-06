@@ -382,6 +382,9 @@
             <span id="ttsIcon">▶</span> Озвучить
         </button>
         <div class="tts-status" id="ttsStatus"></div>
+        <a id="ttsDownloadBtn" style="display:none;margin-top:10px;padding:8px 18px;background:#1a1a2e;border:1px solid #6366f1;border-radius:8px;color:#818cf8;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;">
+            ⬇ Скачать запись
+        </a>
     </div>
 </section>
 
@@ -623,6 +626,14 @@
             currentAudio.play();
             icon.textContent = '🔊';
             status.textContent = 'Воспроизведение...';
+
+            // Show download button
+            const dlBtn = document.getElementById('ttsDownloadBtn');
+            dlBtn.href = url;
+            const voiceName = voice || 'voice';
+            dlBtn.download = `tts_${voiceName}.mp3`;
+            dlBtn.style.display = 'inline-block';
+
             currentAudio.onended = () => { icon.textContent = '▶'; status.textContent = ''; btn.disabled = false; };
         } catch (err) {
             status.textContent = 'Ошибка: ' + err.message;
